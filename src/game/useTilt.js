@@ -9,9 +9,12 @@ import { Accelerometer } from 'expo-sensors';
  * A ref rather than state on purpose: the game loop reads this every frame and
  * re-rendering on every sensor sample would be wasteful.
  *
- * On a device the accelerometer reports gravity, so tilting the phone rolls
- * the ball. Where there is no accelerometer (simulator, web, desktop) the
- * arrow keys and WASD take over.
+ * On a device the accelerometer reports gravity, which is turned into pitch
+ * and roll angles around a resting hold of ~45 degrees - nobody plays with
+ * their phone flat. From there, tip the phone away from you to roll forward
+ * (y positive), pull it toward you to roll back, and tilt sideways to steer
+ * (x positive = right). Where there is no accelerometer (simulator, web,
+ * desktop) the arrow keys and WASD take over.
  */
 export function useTilt() {
   const tilt = useRef({ x: 0, y: 0 });
@@ -27,9 +30,17 @@ export function useTilt() {
 
       if (available) {
         Accelerometer.setUpdateInterval(16);
-        sub = Accelerometer.addListener(({ x, y }) => {
-          // Screen y grows downward, so the device's y axis is inverted.
-          tilt.current = { x: clamp(x), y: clamp(-y) };
+        sub = Accelerometer.addListener(({ x, y, z }) => {
+          // Angles, not raw g's: pitch is how far the top of the phone is
+          // tipped up toward the player (flat = 0), roll how far it is tipped
+          // sideways. abs(z) keeps this the same on iOS and Android, whose
+          // accelerometer z signs differ.
+          const pitch = Math.atan2(-y, Math.abs(z));
+          const roll = Math.atan2(x, Math.hypot(y, z));
+          tilt.current = {
+            x: clamp(roll / ROLL_BAND),
+            y: clamp((NEUTRAL_PITCH - pitch) / PITCH_BAND),
+          };
         });
         setSource('gyro');
       } else {
@@ -49,7 +60,7 @@ export function useTilt() {
     const held = new Set();
     const apply = () => {
       const x = (held.has('right') ? 1 : 0) - (held.has('left') ? 1 : 0);
-      const y = (held.has('down') ? 1 : 0) - (held.has('up') ? 1 : 0);
+      const y = (held.has('up') ? 1 : 0) - (held.has('down') ? 1 : 0); // up = forward
       tilt.current = { x, y };
     };
     const key = (e) => KEY_MAP[e.key] ?? null;
@@ -66,6 +77,13 @@ export function useTilt() {
 
   return { tilt, source, setTilt: (v) => { tilt.current = v; } };
 }
+
+// Resting neutral: top of the phone tipped ~45 degrees up toward the player.
+// Full input is reached PITCH_BAND/ROLL_BAND past neutral - so forward maxes
+// out just before the phone is flat, and backward near vertical.
+const NEUTRAL_PITCH = Math.PI / 4;
+const PITCH_BAND = (40 * Math.PI) / 180;
+const ROLL_BAND = (35 * Math.PI) / 180;
 
 const KEY_MAP = {
   ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down',

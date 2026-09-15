@@ -1,21 +1,25 @@
 # Ball Roller &mdash; Project 3
 
-A tilt-controlled ball rolling game with five levels of increasing
-complexity. Roll the ball to the goal, grab coins, avoid holes.
+A 3D tilt-controlled ball rolling game on a narrow track floating in space.
+Tilt to roll the ball down the track, jump the gaps off bounce pads, dodge
+the spinners, and try not to fall off the sides.
 
-By Caden Lund.
+By Caden Lund, Ben Gutow and Jordan.
 
 > **Status: foundation.** The structure, physics, levels, input and scoring
-> are in place and tested. Art, sound, menus polish and level tuning are the
-> work still to come.
+> are in place and tested. Art, sound, menu polish and level tuning are the
+> work still to come &mdash; split up in the
+> [issues](https://github.com/cadenlund/project3-ball-roller/issues).
 
 ## Controls
 
-The ball is steered by tilting the device &mdash; the accelerometer reports
-gravity, so the ball rolls downhill the way a real one would.
+The ball goes only where the phone is tilted, like a marble on a board.
+Neutral is a natural hold with the phone tipped ~45&deg; toward you: tip it
+away to roll forward, pull it upright to brake and roll back, tilt sideways
+to steer. Each level caps how fast the ball can roll.
 
 Where there is no accelerometer (simulator, web, desktop) the game falls back
-automatically: **arrow keys or WASD** on web, and an on-screen D-pad
+automatically: **WASD or arrow keys** on web, and an on-screen D-pad
 everywhere else. `useTilt` picks the source at startup; nothing else in the
 game knows or cares which one is live.
 
@@ -23,38 +27,42 @@ game knows or cares which one is live.
 
 | Path | Purpose |
 |---|---|
-| `src/game/levels.js` | The five level definitions, in world coordinates |
-| `src/game/engine.js` | Ball physics, collision, coins, holes, goal |
+| `src/game/levels.js` | The five level definitions: track pieces, pads, spinners, coins |
+| `src/game/engine.js` | Ball physics: rolling, steering, gravity, falls, pads, spinners |
 | `src/game/scoring.js` | Points, stars, time formatting |
 | `src/game/progress.js` | Best score per level, saved to device storage |
 | `src/game/useTilt.js` | Accelerometer input with keyboard fallback |
-| `src/components/Board.js` | Draws a level with SVG |
+| `src/components/Scene.js` | Draws a level with three.js (via expo-gl) |
 | `src/screens/` | Level select and gameplay screens |
-| `__tests__/` | 61 tests over levels, physics and scoring |
+| `__tests__/` | 105 tests over levels, physics and scoring |
 
 ### Why it is split this way
 
 `engine.js` and `scoring.js` are pure functions over plain data &mdash; no
-React, no timers, no rendering. `step(state, level, tilt, dt)` returns a new
+React, no three.js, no timers. `step(state, level, tilt, dt)` returns a new
 state and never mutates its input, so the entire game can be simulated in a
-test without a device. The suite leans on that: it rolls each level for
-hundreds of frames to assert the ball never escapes the world, never tunnels
-through a wall, and that no level ships with its start or goal buried in
-geometry.
+test without a device or a GPU. The suite leans on that: it rolls each level
+for thousands of frames to assert the ball never sinks through the track,
+that every gap has a pad strong enough to clear it, and that levels 1 and 3
+are literally beatable by just holding full forward tilt.
 
-Levels are described in a fixed 100x100 world space and scaled to the screen
-at render time, so a level plays identically on any display and none of the
-geometry depends on pixels.
+`Scene.js` is the opposite: purely a view. It reads the engine state every GL
+frame and moves meshes to match, and owns no game logic at all.
+
+Levels are authored as a `run` &mdash; an ordered list of track pieces with a
+length, width, lateral offset and optional gap &mdash; which `buildLevel`
+expands into the absolute spans the engine and renderer share. A level reads
+as one list, not a pile of coordinates.
 
 ## Levels
 
 | # | Name | Idea | Par |
 |---|---|---|---|
-| 1 | First Roll | Open room, learn the tilt | 12s |
-| 2 | Doorway | One wall, one gap | 16s |
-| 3 | Mind the Gap | Holes reset the level | 22s |
-| 4 | Switchback | Three corridors, no shortcuts | 30s |
-| 5 | The Spiral | In to the centre, the long way | 45s |
+| 1 | First Roll | Wide lane, learn to steer | 14s |
+| 2 | The Narrows | The track thins and shifts | 17s |
+| 3 | Mind the Gap | Bounce pads launch you over holes in the track | 24s |
+| 4 | Spin Cycle | Rotating bars sweep the lane | 26s |
+| 5 | The Gauntlet | Everything at once | 32s |
 
 ## Scoring
 
@@ -67,5 +75,5 @@ Levels unlock in order, and the best run per level is kept on device.
 ```bash
 npm install
 npm test
-npx expo start      # press i for iOS, a for Android, w for web
+npx expo start      # scan the QR code with Expo Go
 ```

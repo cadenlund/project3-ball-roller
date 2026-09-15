@@ -1,20 +1,35 @@
-import { MAX_SPEED, STATUS, createGameState, respawn, step } from '../src/game/engine';
-import { BALL_RADIUS, LEVELS, WORLD, getLevel } from '../src/game/levels';
+import {
+  MAX_LATERAL,
+  STATUS,
+  createGameState,
+  respawn,
+  step,
+} from '../src/game/engine';
+import { BALL_RADIUS, FALL_Y, buildLevel, getLevel } from '../src/game/levels';
 
 const L1 = getLevel(1);
 const NONE = { x: 0, y: 0 };
+const FWD = { x: 0, y: 1 }; // full forward tilt
 const dt = 1 / 60;
 
 const run = (level, tilt, frames, state = createGameState(level)) => {
   let s = state;
-  for (let i = 0; i < frames; i++) s = step(s, level, typeof tilt === 'function' ? tilt(s) : tilt, dt);
+  for (let i = 0; i < frames; i++) {
+    s = step(s, level, typeof tilt === 'function' ? tilt(s) : tilt, dt);
+  }
   return s;
 };
 
-test('a new game starts at the level start, still and unscored', () => {
+// Small fixtures so each mechanic can be tested in isolation.
+const straight = (extra = {}) =>
+  buildLevel({ id: 't', name: 't', speed: 10, parTime: 10, run: [{ length: 60, width: 5 }], ...extra });
+
+test('a new game starts at the level start, grounded, still and unscored', () => {
   const s = createGameState(L1);
-  expect([s.x, s.y]).toEqual([L1.start.x, L1.start.y]);
-  expect([s.vx, s.vy]).toEqual([0, 0]);
+  expect([s.x, s.z]).toEqual([L1.start.x, L1.start.z]);
+  expect(s.y).toBe(BALL_RADIUS);
+  expect([s.vx, s.vy, s.vz]).toEqual([0, 0, 0]);
+  expect(s.grounded).toBe(true);
   expect(s.status).toBe(STATUS.PLAYING);
   expect(s.falls).toBe(0);
 });
@@ -26,97 +41,196 @@ test('step does not mutate the state it is given', () => {
   expect(s).toEqual(before);
 });
 
-test('tilting moves the ball in that direction', () => {
-  const s = run(L1, { x: 1, y: 0 }, 30);
-  expect(s.x).toBeGreaterThan(L1.start.x);
+test('with no input at all, the ball goes nowhere', () => {
+  const s = run(L1, NONE, 120);
+  expect(Math.abs(s.z - L1.start.z)).toBeLessThan(0.5);
+  expect(Math.abs(s.vz)).toBeLessThan(0.5);
 });
 
-test('friction brings a rolling ball to rest', () => {
-  const moving = run(L1, { x: 1, y: 0 }, 30);
-  const coasting = run(L1, NONE, 600, moving);
-  expect(Math.hypot(coasting.vx, coasting.vy)).toBeLessThan(1);
+test('tilting forward rolls the ball forward, up to the level speed cap', () => {
+  const s = run(L1, FWD, 120);
+  expect(s.z).toBeGreaterThan(L1.start.z + 5);
+  expect(s.vz).toBeGreaterThan(L1.speed * 0.8);
+  expect(s.vz).toBeLessThanOrEqual(L1.speed + 1e-6);
 });
 
-test('speed is capped', () => {
-  let s = createGameState(L1);
-  for (let i = 0; i < 600; i++) {
-    s = step(s, L1, { x: 1, y: 1 }, dt);
-    expect(Math.hypot(s.vx, s.vy)).toBeLessThanOrEqual(MAX_SPEED + 1e-6);
+test('tilting back rolls the ball backward, at reduced speed', () => {
+  const level = straight({ run: [{ length: 200, width: 6 }], goalZ: 199 });
+  let s = createGameState(level);
+  s = run(level, FWD, 300, s); // roll well up the track first
+  const zBefore = s.z;
+  s = run(level, { x: 0, y: -1 }, 240, s);
+  expect(s.z).toBeLessThan(zBefore);
+  expect(Math.abs(s.vz)).toBeLessThanOrEqual(level.speed * 0.5 + 1e-6);
+});
+
+test('reversing off the back of the track is a fall', () => {
+  const s = run(straight(), { x: 0, y: -1 }, 400);
+  expect(s.status).toBe(STATUS.FELL);
+});
+
+test('tilting steers the ball sideways', () => {
+  const right = run(L1, { x: 1, y: 0 }, 30);
+  expect(right.x).toBeGreaterThan(L1.start.x);
+  const left = run(L1, { x: -1, y: 0 }, 30);
+  expect(left.x).toBeLessThan(L1.start.x);
+});
+
+test('lateral speed is capped', () => {
+  let s = createGameState(straight({ run: [{ length: 600, width: 400 }] }));
+  for (let i = 0; i < 300; i++) {
+    s = step(s, straight({ run: [{ length: 600, width: 400 }] }), { x: 1, y: 0 }, dt);
+    expect(Math.abs(s.vx)).toBeLessThanOrEqual(MAX_LATERAL + 1e-6);
   }
 });
 
-test('the ball never leaves the world, whatever it is told to do', () => {
-  let s = createGameState(getLevel(4));
-  const level = getLevel(4);
-  for (let i = 0; i < 1200; i++) {
-    const tilt = { x: Math.sin(i / 7), y: Math.cos(i / 11) };
-    s = step(s, level, tilt, dt);
-    expect(s.x).toBeGreaterThanOrEqual(BALL_RADIUS - 1e-6);
-    expect(s.x).toBeLessThanOrEqual(WORLD - BALL_RADIUS + 1e-6);
-    expect(s.y).toBeGreaterThanOrEqual(BALL_RADIUS - 1e-6);
-    expect(s.y).toBeLessThanOrEqual(WORLD - BALL_RADIUS + 1e-6);
+test('letting go of the tilt brings the ball to rest', () => {
+  const level = straight({ run: [{ length: 600, width: 100 }] });
+  const rolling = run(level, { x: 1, y: 1 }, 60);
+  const settled = run(level, NONE, 240, rolling);
+  expect(Math.hypot(settled.vx, settled.vz)).toBeLessThan(0.5);
+});
+
+test('steering off the edge drops the ball, and it registers as a fall', () => {
+  const s = run(straight(), { x: 1, y: 0.4 }, 400);
+  expect(s.status).toBe(STATUS.FELL);
+  expect(s.y).toBeLessThanOrEqual(FALL_Y);
+});
+
+test('driving into a gap with no pad is a fall', () => {
+  const level = straight({ run: [{ length: 20, width: 5, gap: 6 }, { length: 20, width: 5 }] });
+  const s = run(level, FWD, 600);
+  expect(s.status).toBe(STATUS.FELL);
+});
+
+test('a bounce pad launches the ball off the ground', () => {
+  const level = straight({ pads: [{ z: 20, x: 0, power: 20 }] });
+  let s = createGameState(level);
+  let peak = 0;
+  for (let i = 0; i < 400; i++) {
+    s = step(s, level, FWD, dt);
+    peak = Math.max(peak, s.y);
   }
+  expect(peak).toBeGreaterThan(BALL_RADIUS + 1.5);
 });
 
-test('walls block the ball instead of letting it pass through', () => {
-  // Level 2's divider has a doorway at y 40-60, so aim at the solid part.
-  const level = getLevel(2);
-  const start = { ...createGameState(level), y: 20 };
-  const s = run(level, { x: 1, y: 0 }, 240, start);
-  expect(s.x).toBeLessThan(49); // never crossed into the right half
-});
-
-test('the doorway in level 2 is passable', () => {
-  const level = getLevel(2);
-  const s = run(level, { x: 1, y: 0 }, 240); // starts at y 50, in the gap
-  expect(s.x).toBeGreaterThan(52);
-});
-
-test('reaching the goal finishes the level', () => {
-  const level = getLevel(1);
-  const s = run(level, { x: 1, y: 1 }, 1200);
+test('a pad before a gap carries the ball across it', () => {
+  const level = straight({
+    run: [{ length: 30, width: 5, gap: 4 }, { length: 30, width: 5 }],
+    pads: [{ z: 29, x: 0, power: 20 }],
+  });
+  const s = run(level, FWD, 600);
   expect(s.status).toBe(STATUS.FINISHED);
+  expect(s.falls).toBe(0);
 });
 
-test('a finished level ignores further input', () => {
-  const finished = run(getLevel(1), { x: 1, y: 1 }, 1200);
-  expect(step(finished, L1, { x: -1, y: -1 }, dt)).toBe(finished);
+test('a spinner shoves the ball off its line', () => {
+  // A bar dead ahead, parked broadside across the track.
+  const level = straight({ spinners: [{ z: 20, x: 0, length: 6, speed: 0.9, phase: 0 }] });
+  let s = createGameState(level);
+  let maxDrift = 0;
+  for (let i = 0; i < 600; i++) {
+    s = step(s, level, FWD, dt);
+    maxDrift = Math.max(maxDrift, Math.abs(s.x));
+    if (s.status !== STATUS.PLAYING) break;
+  }
+  expect(maxDrift).toBeGreaterThan(0.5);
+});
+
+test('a launched ball flies clear over a spinner', () => {
+  const level = straight({
+    pads: [{ z: 16, x: 0, power: 20 }],
+    // Parked broadside: only the jump arc decides whether the ball is hit.
+    spinners: [{ z: 20, x: 0, length: 6, speed: 0, phase: 0 }],
+  });
+  // With the launch, the ball passes z=20 in the air and is never shoved.
+  let s = createGameState(level);
+  for (let i = 0; i < 600 && s.status === STATUS.PLAYING; i++) {
+    s = step(s, level, FWD, dt);
+    if (s.z > 22) break;
+  }
+  expect(Math.abs(s.x)).toBeLessThan(0.2);
 });
 
 test('rolling over a coin collects it, once', () => {
-  const level = getLevel(1);
-  const s = run(level, { x: 1, y: 1 }, 1200);
-  expect(s.coins.filter(Boolean).length).toBeGreaterThan(0);
+  const level = straight({ coins: [{ z: 20, x: 0 }] });
+  const s = run(level, FWD, 300);
+  expect(s.coins).toEqual([true]);
 });
 
-test('falling in a hole stops play, and respawn puts the ball back', () => {
-  const level = {
-    ...getLevel(1),
-    holes: [{ x: 30, y: 15 }],
-    goal: { x: 95, y: 95 },
-  };
-  const fell = run(level, { x: 1, y: 0 }, 600);
-  expect(fell.status).toBe(STATUS.FELL);
-
-  const back = respawn(fell, level);
-  expect([back.x, back.y]).toEqual([level.start.x, level.start.y]);
-  expect([back.vx, back.vy]).toEqual([0, 0]);
-  expect(back.status).toBe(STATUS.PLAYING);
-  expect(back.falls).toBe(1);
+test('a coin off the racing line is not collected by accident', () => {
+  const level = straight({ run: [{ length: 60, width: 12 }], coins: [{ z: 20, x: 4 }] });
+  const s = run(level, FWD, 300);
+  expect(s.coins).toEqual([false]);
 });
 
-test('time advances with the simulation', () => {
-  const s = run(L1, NONE, 60);
-  expect(s.time).toBeCloseTo(1, 1);
+test('crossing the goal line finishes the level', () => {
+  const s = run(straight(), FWD, 600);
+  expect(s.status).toBe(STATUS.FINISHED);
 });
 
-test.each(LEVELS.map((l) => l.id))('level %i can be simulated without blowing up', (id) => {
-  const level = getLevel(id);
-  let s = createGameState(level);
-  for (let i = 0; i < 900; i++) {
-    s = step(s, level, { x: Math.sin(i / 13), y: Math.cos(i / 9) }, dt);
-    expect(Number.isFinite(s.x)).toBe(true);
-    expect(Number.isFinite(s.y)).toBe(true);
-    if (s.status === STATUS.FELL) s = respawn(s, level);
+test('nothing moves once the level is finished or lost', () => {
+  const done = run(straight(), FWD, 600);
+  expect(step(done, straight(), { x: 1, y: -1 }, dt)).toBe(done);
+});
+
+test('respawn returns the ball to the start, counts the fall, keeps the clock and coins', () => {
+  const level = straight({ coins: [{ z: 10, x: 0 }] });
+  let s = run(level, FWD, 120); // collects the coin on the way
+  s = run(level, { x: 1, y: 0.4 }, 400, s);
+  expect(s.status).toBe(STATUS.FELL);
+  const r = respawn(s, level);
+  expect([r.x, r.z, r.y]).toEqual([level.start.x, level.start.z, BALL_RADIUS]);
+  expect(r.status).toBe(STATUS.PLAYING);
+  expect(r.falls).toBe(s.falls + 1);
+  expect(r.time).toBe(s.time);
+  expect(r.coins).toEqual([true]);
+});
+
+test('the simulation is deterministic', () => {
+  const wiggle = (s) => ({ x: Math.sin(s.time * 3), y: Math.cos(s.time * 2) / 2 });
+  const a = run(getLevel(5), wiggle, 900);
+  const b = run(getLevel(5), wiggle, 900);
+  expect(a).toEqual(b);
+});
+
+test('time only ever moves forward', () => {
+  let s = createGameState(L1);
+  for (let i = 0; i < 200; i++) {
+    const next = step(s, L1, NONE, dt);
+    expect(next.time).toBeGreaterThan(s.time);
+    s = next;
   }
+});
+
+test('level 1 is beatable by simply holding forward, under par, with its coin', () => {
+  const s = run(L1, FWD, 60 * L1.parTime);
+  expect(s.status).toBe(STATUS.FINISHED);
+  expect(s.time).toBeLessThan(L1.parTime);
+  expect(s.coins).toEqual([true]);
+  expect(s.falls).toBe(0);
+});
+
+test('level 3 is beatable holding forward: every pad clears its gap', () => {
+  const s = run(getLevel(3), FWD, 60 * getLevel(3).parTime);
+  expect(s.status).toBe(STATUS.FINISHED);
+  expect(s.falls).toBe(0);
+});
+
+describe.each([1, 2, 3, 4, 5])('level %i under a chaotic driver', (id) => {
+  test('never NaNs, never sinks through the track, falls are always caught', () => {
+    const level = getLevel(id);
+    let s = createGameState(level);
+    for (let i = 0; i < 3000; i++) {
+      const tilt = { x: Math.sin(i / 9), y: 0.6 + Math.cos(i / 13) / 2 };
+      s = step(s, level, tilt, dt);
+      expect(Number.isFinite(s.x + s.y + s.z + s.vx + s.vy + s.vz)).toBe(true);
+      if (s.grounded) expect(s.y).toBe(BALL_RADIUS);
+      expect(s.y).toBeGreaterThan(FALL_Y - 2);
+      if (s.status !== STATUS.PLAYING) {
+        if (s.status === STATUS.FELL) s = respawn(s, level);
+        else break;
+      }
+    }
+  });
 });
