@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "Ball Roller",
+    "slug": "project3-ball-roller",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "newArchEnabled": true,
+    "userInterfaceStyle": "dark",
+    "ios": { "bundleIdentifier": "com.cadenlund.ballroller", "supportsTablet": true },
+    "android": { "package": "com.cadenlund.ballroller" },
+    "web": { "bundler": "metro" }
+  }
+}
