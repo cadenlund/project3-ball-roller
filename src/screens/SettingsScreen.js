@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
+import { COLORS } from '../theme';
+
 const SENSITIVITY_STEPS = [0.75, 1, 1.25, 1.5];
 
 /**
@@ -43,7 +45,8 @@ export function SettingsScreen({ settings, onChange, onBack, onResetProgress, on
             testID="sound-toggle"
             value={settings.sound}
             onValueChange={(v) => set({ sound: v })}
-            trackColor={{ false: '#1e293b', true: '#0ea5e9' }}
+            trackColor={{ false: COLORS.surfaceAlt, true: COLORS.cyanDeep }}
+            thumbColor={settings.sound ? COLORS.cyan : undefined}
           />
         </Row>
 
@@ -52,7 +55,8 @@ export function SettingsScreen({ settings, onChange, onBack, onResetProgress, on
             testID="haptics-toggle"
             value={settings.haptics}
             onValueChange={(v) => set({ haptics: v })}
-            trackColor={{ false: '#1e293b', true: '#0ea5e9' }}
+            trackColor={{ false: COLORS.surfaceAlt, true: COLORS.cyanDeep }}
+            thumbColor={settings.haptics ? COLORS.cyan : undefined}
           />
         </Row>
 
@@ -115,37 +119,37 @@ function Row({ label, children }) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#020617', paddingTop: 64, paddingHorizontal: 22 },
+  screen: { flex: 1, backgroundColor: COLORS.void, paddingTop: 64, paddingHorizontal: 22 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  back: { color: '#94a3b8', fontSize: 28, width: 40 },
-  title: { fontSize: 22, fontWeight: '800', color: '#f8fafc' },
+  back: { color: COLORS.textMuted, fontSize: 28, width: 40 },
+  title: { fontSize: 22, fontWeight: '800', color: COLORS.text },
   list: { paddingVertical: 24, gap: 20 },
   row: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#0f172a', borderRadius: 14, padding: 16,
-    borderWidth: 1, borderColor: '#1e293b',
+    backgroundColor: COLORS.surface, borderRadius: 14, padding: 16,
+    borderWidth: 1, borderColor: COLORS.border,
   },
-  rowLabel: { fontSize: 16, fontWeight: '600', color: '#e2e8f0' },
+  rowLabel: { fontSize: 16, fontWeight: '600', color: COLORS.text },
   section: {
-    backgroundColor: '#0f172a', borderRadius: 14, padding: 16,
-    borderWidth: 1, borderColor: '#1e293b', gap: 10,
+    backgroundColor: COLORS.surface, borderRadius: 14, padding: 16,
+    borderWidth: 1, borderColor: COLORS.border, gap: 10,
   },
-  sectionLabel: { fontSize: 16, fontWeight: '600', color: '#e2e8f0' },
-  hint: { fontSize: 13, color: '#64748b', lineHeight: 18 },
+  sectionLabel: { fontSize: 16, fontWeight: '600', color: COLORS.text },
+  hint: { fontSize: 13, color: COLORS.textMuted, lineHeight: 18 },
   chips: { flexDirection: 'row', gap: 8 },
   chip: {
     paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10,
-    backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155',
+    backgroundColor: COLORS.surfaceAlt, borderWidth: 1, borderColor: COLORS.border,
   },
-  chipActive: { backgroundColor: '#0ea5e9', borderColor: '#0ea5e9' },
-  chipText: { color: '#94a3b8', fontWeight: '600' },
-  chipTextActive: { color: '#f8fafc' },
+  chipActive: { backgroundColor: COLORS.cyan, borderColor: COLORS.cyan },
+  chipText: { color: COLORS.textMuted, fontWeight: '600' },
+  chipTextActive: { color: COLORS.void },
   button: {
-    backgroundColor: '#0f172a', borderRadius: 14, padding: 16, alignItems: 'center',
-    borderWidth: 1, borderColor: '#1e293b',
+    backgroundColor: COLORS.surface, borderRadius: 14, padding: 16, alignItems: 'center',
+    borderWidth: 1, borderColor: COLORS.border,
   },
-  buttonText: { color: '#38bdf8', fontSize: 16, fontWeight: '700' },
-  dangerButton: { borderColor: '#7f1d1d' },
-  dangerText: { color: '#f87171' },
-  linkText: { color: '#64748b', fontSize: 13, textDecorationLine: 'underline' },
+  buttonText: { color: COLORS.cyanBright, fontSize: 16, fontWeight: '700' },
+  dangerButton: { borderColor: COLORS.emberDeep },
+  dangerText: { color: COLORS.danger },
+  linkText: { color: COLORS.textFaint, fontSize: 13, textDecorationLine: 'underline' },
 });

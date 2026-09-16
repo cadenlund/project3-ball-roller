@@ -2,13 +2,16 @@ import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
 
+import { LEVEL_COUNT, getLevel } from './src/game/levels';
 import { loadProgress, mergeResult, saveProgress } from './src/game/progress';
 import { DEFAULT_SETTINGS, loadSettings, saveSettings } from './src/game/settings';
 import { useTilt } from './src/game/useTilt';
 import { GameScreen } from './src/screens/GameScreen';
 import { MenuScreen } from './src/screens/MenuScreen';
+import { ResultsScreen } from './src/screens/ResultsScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { TutorialOverlay } from './src/screens/TutorialOverlay';
+import { COLORS } from './src/theme';
 
 export default function App() {
   const [progress, setProgress] = useState({});
@@ -16,6 +19,7 @@ export default function App() {
   const [levelId, setLevelId] = useState(null); // null = menu
   const [screen, setScreen] = useState('menu'); // 'menu' | 'settings'
   const [showTutorial, setShowTutorial] = useState(false);
+  const [results, setResults] = useState(null); // { levelId, result, isNewBest } | null
 
   // Owned here, not in GameScreen, so the sensor subscription stays alive
   // across menu/settings/game and the tutorial can read the live input source.
@@ -39,11 +43,13 @@ export default function App() {
 
   const handleFinish = (id, result) => {
     setProgress((prev) => {
+      const prevBest = prev[id];
+      const isNewBest = !prevBest || result.score > prevBest.score;
       const next = mergeResult(prev, id, result);
       saveProgress(next);
+      setResults({ levelId: id, result, isNewBest });
       return next;
     });
-    setLevelId(null);
   };
 
   const dismissTutorial = () => {
@@ -57,7 +63,19 @@ export default function App() {
   };
 
   let body;
-  if (levelId != null) {
+  if (results) {
+    body = (
+      <ResultsScreen
+        level={getLevel(results.levelId)}
+        result={results.result}
+        isNewBest={results.isNewBest}
+        hasNext={results.levelId < LEVEL_COUNT}
+        onReplay={() => { setResults(null); setLevelId(results.levelId); }}
+        onNext={() => { const next = results.levelId + 1; setResults(null); setLevelId(next); }}
+        onMenu={() => { setResults(null); setLevelId(null); }}
+      />
+    );
+  } else if (levelId != null) {
     body = (
       <GameScreen levelId={levelId} onExit={() => setLevelId(null)} onFinish={handleFinish} tiltHook={tiltHook} />
     );
@@ -86,5 +104,5 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#020617' },
+  root: { flex: 1, backgroundColor: COLORS.void },
 });

@@ -4,7 +4,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Scene } from '../components/Scene';
 import { STATUS, createGameState, respawn, step } from '../game/engine';
 import { getLevel } from '../game/levels';
-import { formatTime, scoreLevel, starsFor } from '../game/scoring';
+import { formatTime, scoreBreakdown, starsFor } from '../game/scoring';
+import { COLORS } from '../theme';
 
 export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
   const level = getLevel(levelId);
@@ -45,10 +46,13 @@ export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
   useEffect(() => {
     if (view.status !== STATUS.FINISHED) return;
     const coinsCollected = view.coins.filter(Boolean).length;
+    const breakdown = scoreBreakdown({ time: view.time, parTime: level.parTime, coinsCollected, falls: view.falls });
     onFinish(levelId, {
-      score: scoreLevel({ time: view.time, parTime: level.parTime, coinsCollected, falls: view.falls }),
+      score: breakdown.total,
+      breakdown,
       time: view.time,
       coins: coinsCollected,
+      falls: view.falls,
       stars: starsFor({ time: view.time, parTime: level.parTime, coinsCollected, coinTotal: level.coins.length }),
     });
   }, [view.status]);
@@ -106,27 +110,33 @@ export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#020617' },
+  screen: { flex: 1, backgroundColor: COLORS.void },
   hud: {
     position: 'absolute', top: 64, left: 0, right: 0, paddingHorizontal: 22,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
-  back: { color: '#94a3b8', fontSize: 28, width: 40 },
-  levelName: { color: '#e2e8f0', fontSize: 18, fontWeight: '700', textAlign: 'center' },
-  hint: { color: '#64748b', fontSize: 12, textAlign: 'center', marginTop: 2 },
-  timer: { color: '#38bdf8', fontSize: 18, fontWeight: '700', width: 72, textAlign: 'right' },
+  back: { color: COLORS.textMuted, fontSize: 28, width: 40 },
+  levelName: { color: COLORS.text, fontSize: 18, fontWeight: '700', textAlign: 'center' },
+  hint: { color: COLORS.textMuted, fontSize: 12, textAlign: 'center', marginTop: 2 },
+  timer: {
+    color: COLORS.cyanBright, fontSize: 18, fontWeight: '700', width: 72, textAlign: 'right',
+    textShadowColor: COLORS.cyan, textShadowRadius: 10, textShadowOffset: { width: 0, height: 0 },
+  },
   footer: { position: 'absolute', bottom: 28, left: 0, right: 0, alignItems: 'center', gap: 4 },
-  meta: { color: '#94a3b8', fontSize: 14 },
-  source: { color: '#475569', fontSize: 12 },
+  meta: { color: COLORS.textMuted, fontSize: 14 },
+  source: { color: COLORS.textFaint, fontSize: 12 },
   fell: {
     position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
     alignItems: 'center', justifyContent: 'center',
   },
-  fellText: { color: '#f87171', fontSize: 28, fontWeight: '800' },
+  fellText: {
+    color: COLORS.ember, fontSize: 28, fontWeight: '800',
+    textShadowColor: COLORS.ember, textShadowRadius: 16, textShadowOffset: { width: 0, height: 0 },
+  },
   pad: { position: 'absolute', bottom: 76, alignSelf: 'center', width: 168, height: 168 },
   padBtn: {
     position: 'absolute', width: 54, height: 54, borderRadius: 12,
-    backgroundColor: '#1e293b88', borderWidth: 1, borderColor: '#334155',
+    backgroundColor: COLORS.surface + 'cc', borderWidth: 1, borderColor: COLORS.border,
   },
   pad_up: { top: 0, left: 57 },
   pad_down: { bottom: 0, left: 57 },

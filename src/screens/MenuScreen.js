@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LEVELS } from '../game/levels';
 import { isUnlocked, totalScore } from '../game/progress';
 import { formatTime } from '../game/scoring';
+import { COLORS } from '../theme';
 
 export function MenuScreen({ progress, onPlay, onSettings }) {
   return (
@@ -53,23 +54,26 @@ export function MenuScreen({ progress, onPlay, onSettings }) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#020617', paddingTop: 72, paddingHorizontal: 22 },
+  screen: { flex: 1, backgroundColor: COLORS.void, paddingTop: 72, paddingHorizontal: 22 },
   topRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  gear: { fontSize: 26, color: '#64748b' },
-  title: { fontSize: 40, fontWeight: '800', color: '#f8fafc' },
-  subtitle: { fontSize: 14, color: '#64748b', marginTop: 4 },
-  total: { fontSize: 18, color: '#fbbf24', fontWeight: '700', marginTop: 14 },
+  gear: { fontSize: 26, color: COLORS.textMuted },
+  title: {
+    fontSize: 40, fontWeight: '800', color: COLORS.text,
+    textShadowColor: COLORS.ember + '55', textShadowRadius: 18, textShadowOffset: { width: 0, height: 0 },
+  },
+  subtitle: { fontSize: 14, color: COLORS.textMuted, marginTop: 4 },
+  total: { fontSize: 18, color: COLORS.gold, fontWeight: '700', marginTop: 14 },
   list: { paddingVertical: 20, gap: 12 },
   card: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#0f172a', borderRadius: 14, padding: 16,
-    borderWidth: 1, borderColor: '#1e293b',
+    backgroundColor: COLORS.surface, borderRadius: 14, padding: 16,
+    borderWidth: 1, borderColor: COLORS.border,
   },
   locked: { opacity: 0.4 },
   cardMain: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  cardNum: { fontSize: 24, fontWeight: '800', color: '#334155', width: 28 },
+  cardNum: { fontSize: 24, fontWeight: '800', color: COLORS.textFaint, width: 28 },
   cardText: { gap: 2 },
-  cardName: { fontSize: 17, fontWeight: '600', color: '#e2e8f0' },
-  cardMeta: { fontSize: 13, color: '#64748b' },
-  stars: { fontSize: 16, color: '#fbbf24' },
+  cardName: { fontSize: 17, fontWeight: '600', color: COLORS.text },
+  cardMeta: { fontSize: 13, color: COLORS.textMuted },
+  stars: { fontSize: 16, color: COLORS.gold },
 });

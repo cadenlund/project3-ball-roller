@@ -85,7 +85,7 @@ export const LEVELS = [
       { length: 20, width: 2.6, x: 1.5 },
       { length: 24, width: 3.6 },
     ],
-    coins: [{ z: 30, x: 3.6 }, { z: 50, x: -3.6 }],
+    coins: [{ z: 30, x: 2.6 }, { z: 50, x: -2.6 }],
   },
   {
     id: 3,

@@ -2,6 +2,7 @@ import { memo, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber/native';
 
 import { BALL_RADIUS, PAD_RADIUS, SPINNER_HALF_WIDTH } from '../game/levels';
+import { COLORS } from '../theme';
 
 /**
  * Draws a level and the ball with three.js. Purely a view: it reads the
@@ -50,22 +51,25 @@ function World({ level, stateRef }) {
 
   return (
     <>
-      <color attach="background" args={['#020617']} />
-      <fog attach="fog" args={['#020617', 24, 80]} />
-      <ambientLight intensity={0.55} />
-      <directionalLight position={[6, 12, -4]} intensity={1.1} />
+      <color attach="background" args={[COLORS.void]} />
+      <fog attach="fog" args={[COLORS.void, 24, 80]} />
+      <ambientLight intensity={0.45} color={COLORS.surface} />
+      {/* Low warm "sun" as the key light, a dim cyan rim light for that
+          retro-sunset warm/cool contrast. */}
+      <directionalLight position={[6, 12, -4]} intensity={1.15} color={COLORS.ember} />
+      <directionalLight position={[-8, 6, 8]} intensity={0.4} color={COLORS.cyan} />
 
       {level.segments.map((seg, i) => (
         <mesh key={`seg${i}`} position={[seg.x, -0.55, -(seg.z0 + seg.z1) / 2]}>
           <boxGeometry args={[seg.width, 1.1, seg.z1 - seg.z0]} />
-          <meshStandardMaterial color="#334155" />
+          <meshStandardMaterial color={COLORS.brown} emissive={COLORS.brownDeep} emissiveIntensity={0.25} />
         </mesh>
       ))}
 
       {level.pads.map((p, i) => (
         <mesh key={`pad${i}`} position={[p.x, 0.09, -p.z]}>
           <cylinderGeometry args={[PAD_RADIUS * 0.85, PAD_RADIUS * 0.85, 0.18, 24]} />
-          <meshStandardMaterial color="#f59e0b" emissive="#b45309" emissiveIntensity={0.7} />
+          <meshStandardMaterial color={COLORS.gold} emissive={COLORS.amber} emissiveIntensity={0.85} />
         </mesh>
       ))}
 
@@ -73,7 +77,7 @@ function World({ level, stateRef }) {
         <group key={`sp${i}`} position={[sp.x, 0.6, -sp.z]} ref={(el) => (spinnerRefs.current[i] = el)}>
           <mesh>
             <boxGeometry args={[sp.length, 0.5, SPINNER_HALF_WIDTH * 2]} />
-            <meshStandardMaterial color="#f43f5e" emissive="#9f1239" emissiveIntensity={0.5} />
+            <meshStandardMaterial color={COLORS.ember} emissive={COLORS.emberDeep} emissiveIntensity={0.7} />
           </mesh>
         </group>
       ))}
@@ -81,7 +85,7 @@ function World({ level, stateRef }) {
       {level.coins.map((c, i) => (
         <mesh key={`coin${i}`} position={[c.x, c.y ?? 0.9, -c.z]} ref={(el) => (coinRefs.current[i] = el)}>
           <torusGeometry args={[0.5, 0.2, 12, 24]} />
-          <meshStandardMaterial color="#fbbf24" emissive="#a16207" emissiveIntensity={0.6} />
+          <meshStandardMaterial color={COLORS.goldBright} emissive={COLORS.amber} emissiveIntensity={0.75} />
         </mesh>
       ))}
 
@@ -89,9 +93,9 @@ function World({ level, stateRef }) {
       <mesh position={[goalSeg.x, 1.1, -level.goalZ]}>
         <boxGeometry args={[goalSeg.width, 2.2, 0.25]} />
         <meshStandardMaterial
-          color="#22c55e"
-          emissive="#15803d"
-          emissiveIntensity={0.8}
+          color={COLORS.cyan}
+          emissive={COLORS.cyanDeep}
+          emissiveIntensity={0.9}
           transparent
           opacity={0.55}
         />
@@ -99,7 +103,7 @@ function World({ level, stateRef }) {
 
       <mesh ref={ball}>
         <sphereGeometry args={[BALL_RADIUS, 24, 24]} />
-        <meshStandardMaterial color="#e2e8f0" />
+        <meshStandardMaterial color={COLORS.text} emissive={COLORS.amber} emissiveIntensity={0.2} />
       </mesh>
     </>
   );

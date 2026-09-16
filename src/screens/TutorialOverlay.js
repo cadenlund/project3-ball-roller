@@ -1,5 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { COLORS } from '../theme';
+
 /**
  * First-launch "how to play" overlay. Shown once automatically (App.js
  * gates that on `settings.tutorialSeen`) and reachable again from the
@@ -41,18 +43,18 @@ export function TutorialOverlay({ source, onDismiss }) {
 const styles = StyleSheet.create({
   backdrop: {
     position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
-    backgroundColor: '#020617dd', alignItems: 'center', justifyContent: 'center', padding: 24,
+    backgroundColor: COLORS.void + 'dd', alignItems: 'center', justifyContent: 'center', padding: 24,
   },
   card: {
-    width: '100%', maxWidth: 420, backgroundColor: '#0f172a', borderRadius: 20,
-    padding: 24, gap: 6, borderWidth: 1, borderColor: '#1e293b',
+    width: '100%', maxWidth: 420, backgroundColor: COLORS.surface, borderRadius: 20,
+    padding: 24, gap: 6, borderWidth: 1, borderColor: COLORS.border,
   },
-  title: { fontSize: 24, fontWeight: '800', color: '#f8fafc', marginBottom: 8 },
-  section: { fontSize: 13, fontWeight: '700', color: '#38bdf8', marginTop: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
-  body: { fontSize: 15, color: '#cbd5e1', lineHeight: 22 },
-  bold: { fontWeight: '700', color: '#e2e8f0' },
+  title: { fontSize: 24, fontWeight: '800', color: COLORS.text, marginBottom: 8 },
+  section: { fontSize: 13, fontWeight: '700', color: COLORS.cyanBright, marginTop: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
+  body: { fontSize: 15, color: COLORS.textDim, lineHeight: 22 },
+  bold: { fontWeight: '700', color: COLORS.text },
   button: {
-    marginTop: 20, backgroundColor: '#0ea5e9', borderRadius: 14, padding: 16, alignItems: 'center',
+    marginTop: 20, backgroundColor: COLORS.gold, borderRadius: 14, padding: 16, alignItems: 'center',
   },
-  buttonText: { color: '#f8fafc', fontSize: 16, fontWeight: '700' },
+  buttonText: { color: COLORS.void, fontSize: 16, fontWeight: '700' },
 });
