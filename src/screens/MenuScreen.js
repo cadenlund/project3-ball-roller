@@ -4,11 +4,18 @@ import { LEVELS } from '../game/levels';
 import { isUnlocked, totalScore } from '../game/progress';
 import { formatTime } from '../game/scoring';
 
-export function MenuScreen({ progress, onPlay }) {
+export function MenuScreen({ progress, onPlay, onSettings }) {
   return (
     <View style={styles.screen}>
-      <Text style={styles.title}>Ball Roller</Text>
-      <Text style={styles.subtitle}>Caden Lund &middot; Project 3</Text>
+      <View style={styles.topRow}>
+        <View>
+          <Text style={styles.title}>Ball Roller</Text>
+          <Text style={styles.subtitle}>Caden Lund &middot; Project 3</Text>
+        </View>
+        <Pressable testID="open-settings" onPress={onSettings} hitSlop={12}>
+          <Text style={styles.gear}>&#9881;</Text>
+        </Pressable>
+      </View>
       <Text style={styles.total} testID="total-score">
         {totalScore(progress)} pts
       </Text>
@@ -47,6 +54,8 @@ export function MenuScreen({ progress, onPlay }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#020617', paddingTop: 72, paddingHorizontal: 22 },
+  topRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  gear: { fontSize: 26, color: '#64748b' },
   title: { fontSize: 40, fontWeight: '800', color: '#f8fafc' },
   subtitle: { fontSize: 14, color: '#64748b', marginTop: 4 },
   total: { fontSize: 18, color: '#fbbf24', fontWeight: '700', marginTop: 14 },

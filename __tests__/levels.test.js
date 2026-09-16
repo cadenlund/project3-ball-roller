@@ -43,6 +43,18 @@ describe.each(LEVELS)('level $id ($name)', (level) => {
     }
   });
 
+  test('adjoining segments (no gap between them) actually overlap sideways', () => {
+    // Otherwise the track visibly fails to connect at that seam, even though
+    // it's a false gap - z is continuous, only x has drifted too far.
+    for (let i = 1; i < level.segments.length; i++) {
+      const prev = level.segments[i - 1];
+      const next = level.segments[i];
+      if (next.z0 !== prev.z1) continue; // an intentional jump gap
+      const halfSum = (prev.width + next.width) / 2;
+      expect(Math.abs(next.x - prev.x)).toBeLessThan(halfSum);
+    }
+  });
+
   test('the ball starts on the track', () => {
     expect(segmentAt(level, level.start.x, level.start.z)).not.toBeNull();
   });

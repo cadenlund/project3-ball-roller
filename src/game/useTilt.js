@@ -10,14 +10,19 @@ import { Accelerometer } from 'expo-sensors';
  * re-rendering on every sensor sample would be wasteful.
  *
  * On a device the accelerometer reports gravity, which is turned into pitch
- * and roll angles around a resting hold of ~45 degrees - nobody plays with
- * their phone flat. From there, tip the phone away from you to roll forward
- * (y positive), pull it toward you to roll back, and tilt sideways to steer
- * (x positive = right). Where there is no accelerometer (simulator, web,
- * desktop) the arrow keys and WASD take over.
+ * and roll angles around a resting hold - nobody plays with their phone flat.
+ * From there, tip the phone away from you to roll forward (y positive), pull
+ * it toward you to roll back, and tilt sideways to steer (x positive =
+ * right). Where there is no accelerometer (simulator, web, desktop) the
+ * arrow keys and WASD take over.
+ *
+ * `neutralPitch` overrides the resting angle (radians) once the player has
+ * calibrated via the settings screen; `sensitivity` scales how far past
+ * neutral is needed to reach full tilt (>1 = less travel required).
  */
-export function useTilt() {
+export function useTilt({ neutralPitch = NEUTRAL_PITCH, sensitivity = 1 } = {}) {
   const tilt = useRef({ x: 0, y: 0 });
+  const rawPitch = useRef(neutralPitch);
   const [source, setSource] = useState('none');
 
   useEffect(() => {
@@ -37,9 +42,12 @@ export function useTilt() {
           // accelerometer z signs differ.
           const pitch = Math.atan2(-y, Math.abs(z));
           const roll = Math.atan2(x, Math.hypot(y, z));
+          rawPitch.current = pitch;
+          const pitchBand = PITCH_BAND / sensitivity;
+          const rollBand = ROLL_BAND / sensitivity;
           tilt.current = {
-            x: clamp(roll / ROLL_BAND),
-            y: clamp((NEUTRAL_PITCH - pitch) / PITCH_BAND),
+            x: clamp(roll / rollBand),
+            y: clamp((neutralPitch - pitch) / pitchBand),
           };
         });
         setSource('gyro');
@@ -52,7 +60,7 @@ export function useTilt() {
       cancelled = true;
       sub?.remove();
     };
-  }, []);
+  }, [neutralPitch, sensitivity]);
 
   useEffect(() => {
     if (source !== 'keys' || Platform.OS !== 'web') return;
@@ -75,14 +83,24 @@ export function useTilt() {
     };
   }, [source]);
 
-  return { tilt, source, setTilt: (v) => { tilt.current = v; } };
+  return {
+    tilt,
+    source,
+    setTilt: (v) => { tilt.current = v; },
+    // Captures the phone's current pitch as the new resting neutral, so the
+    // settings screen's "calibrate" button can call this while the player
+    // holds the phone however feels natural to them.
+    calibrate: () => rawPitch.current,
+  };
 }
 
-// Resting neutral: top of the phone tipped ~45 degrees up toward the player.
-// Full input is reached PITCH_BAND/ROLL_BAND past neutral - so forward maxes
-// out just before the phone is flat, and backward near vertical.
+// Resting neutral: top of the phone tipped ~45 degrees up toward the player,
+// the natural angle for holding a phone up to look at it. Full input is
+// reached PITCH_BAND/ROLL_BAND past neutral. PITCH_BAND is kept fairly
+// tight so a moderate forward lean is enough to get moving - not the near-flat
+// tilt a wider band would demand.
 const NEUTRAL_PITCH = Math.PI / 4;
-const PITCH_BAND = (40 * Math.PI) / 180;
+const PITCH_BAND = (22 * Math.PI) / 180;
 const ROLL_BAND = (35 * Math.PI) / 180;
 
 const KEY_MAP = {

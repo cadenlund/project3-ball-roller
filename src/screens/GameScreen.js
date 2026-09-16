@@ -5,12 +5,11 @@ import { Scene } from '../components/Scene';
 import { STATUS, createGameState, respawn, step } from '../game/engine';
 import { getLevel } from '../game/levels';
 import { formatTime, scoreLevel, starsFor } from '../game/scoring';
-import { useTilt } from '../game/useTilt';
 
-export function GameScreen({ levelId, onExit, onFinish }) {
+export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
   const level = getLevel(levelId);
 
-  const { tilt, source, setTilt } = useTilt();
+  const { tilt, source, setTilt } = tiltHook;
   const [view, setView] = useState(() => createGameState(level));
   const stateRef = useRef(view);
   const rafRef = useRef(null);

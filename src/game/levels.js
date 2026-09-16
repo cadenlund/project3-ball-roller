@@ -79,8 +79,8 @@ export const LEVELS = [
     parTime: 17,
     run: [
       { length: 20, width: 6 },
-      { length: 20, width: 4.4, x: 2.5 },
-      { length: 20, width: 4.4, x: -2.5 },
+      { length: 20, width: 4.4, x: 2 },
+      { length: 20, width: 4.4, x: -2 },
       { length: 18, width: 3.2 },
       { length: 20, width: 2.6, x: 1.5 },
       { length: 24, width: 3.6 },
@@ -128,7 +128,7 @@ export const LEVELS = [
     parTime: 32,
     run: [
       { length: 30, width: 5 },
-      { length: 25, width: 3.4, x: 2 },
+      { length: 25, width: 3.4, x: 1 },
       { length: 25, width: 3.4, x: -2, gap: 4.5 },
       { length: 30, width: 4.6 },
       { length: 26, width: 3, x: 1.5, gap: 4.5 },
