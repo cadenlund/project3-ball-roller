@@ -17,7 +17,9 @@ export function haptic(type) {
       result = Haptics.notificationAsync(type === 'goal'
         ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning);
     } else {
-      const style = { coin: 'Light', pad: 'Medium', landing: 'Medium', spinner: 'Heavy' }[type];
+      const style = { coin: 'Light', cannon: 'Light', pad: 'Medium', boost: 'Medium',
+        landing: 'Medium', ballast: 'Medium', switch: 'Heavy', gate: 'Heavy',
+        fire: 'Heavy', spinner: 'Heavy' }[type];
       if (!style) return;
       result = Haptics.impactAsync(Haptics.ImpactFeedbackStyle[style]);
     }
@@ -27,7 +29,8 @@ export function haptic(type) {
 
 export function playGameHaptics(state) {
   // One strongest response per physics frame avoids overlapping vibrations.
-  const priority = ['goal', 'fall', 'spinner', 'pad', 'landing', 'coin'];
+  const priority = ['goal', 'fall', 'fire', 'switch', 'gate', 'spinner', 'pad', 'boost',
+    'cannon', 'ballast', 'landing', 'coin'];
   const type = priority.find(type => state.events?.some(event => event.type === type));
   if (!type) return;
   if (type === 'spinner') {

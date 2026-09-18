@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, AppState, StyleSheet, Text, View } from 'react-native';
 
 import { playGameHaptics } from '../game/haptics';
-import { playGameSounds, setRolling } from '../game/sounds';
+import { playGameSounds, setQuiet } from '../game/sounds';
 import { Scene } from '../components/Scene';
 import { STATUS, createGameState, respawn, step } from '../game/engine';
 import { createStepper } from '../game/loop';
@@ -55,7 +55,7 @@ export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
     pausedRef.current = true;
     setPaused(true);
     stepperRef.current?.reset(); // buffered time must not be paid back on resume
-    setRolling(0); // the rolling loop should not hum under the pause menu
+    setQuiet(); // no rolling and no wind under the pause menu
   };
 
   // Resuming replays the countdown rather than dropping the player straight
@@ -70,7 +70,7 @@ export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
     pausedRef.current = false;
     setPaused(false);
     stepperRef.current?.reset();
-    setRolling(0);
+    setQuiet();
     stateRef.current = createGameState(level);
     setView(stateRef.current);
     runCountdown();
@@ -106,7 +106,7 @@ export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
     };
     rafRef.current = requestAnimationFrame(loop);
     return () => {
-      setRolling(0);
+      setQuiet();
       cancelAnimationFrame(rafRef.current);
       countdownTimers.current.forEach(clearTimeout);
     };

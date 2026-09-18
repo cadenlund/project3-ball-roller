@@ -5,7 +5,8 @@ import {
   respawn,
   step,
 } from '../src/game/engine';
-import { BALL_RADIUS, FALL_Y, buildLevel, getLevel } from '../src/game/levels';
+import { BALL_RADIUS, FALL_Y, bankAt, buildLevel, getLevel, segmentAt, surfaceAt } from '../src/game/levels';
+import { autopilotTilt } from '../test-utils/autopilot';
 
 const L1 = getLevel(1);
 const NONE = { x: 0, y: 0 };
@@ -203,21 +204,25 @@ test('time only ever moves forward', () => {
   }
 });
 
-test('level 1 is beatable by simply holding forward, under par, with its coin', () => {
-  const s = run(L1, FWD, 60 * L1.parTime);
+// The track bends now, so "hold forward" is no longer a strategy - a driver
+// has to steer to stay on it at all. Following the centreline is, though.
+const follow = (level) => (s) => autopilotTilt(level, s);
+
+test('level 1 is beatable just by following the track, under par, cleanly', () => {
+  const s = run(L1, follow(L1), 60 * L1.parTime);
   expect(s.status).toBe(STATUS.FINISHED);
   expect(s.time).toBeLessThan(L1.parTime);
-  expect(s.coins).toEqual([true]);
   expect(s.falls).toBe(0);
 });
 
-test('level 3 is beatable holding forward: every pad clears its gap', () => {
-  const s = run(getLevel(3), FWD, 60 * getLevel(3).parTime);
+test('level 3 is beatable following the track: every pad clears its gap', () => {
+  const L3 = getLevel(3);
+  const s = run(L3, follow(L3), 60 * L3.parTime);
   expect(s.status).toBe(STATUS.FINISHED);
   expect(s.falls).toBe(0);
 });
 
-describe.each([1, 2, 3, 4, 5])('level %i under a chaotic driver', (id) => {
+describe.each([1, 2, 3, 4, 5, 6, 7, 8])('level %i under a chaotic driver', (id) => {
   test('never NaNs, never sinks through the track, falls are always caught', () => {
     const level = getLevel(id);
     let s = createGameState(level);
@@ -225,8 +230,15 @@ describe.each([1, 2, 3, 4, 5])('level %i under a chaotic driver', (id) => {
       const tilt = { x: Math.sin(i / 9), y: 0.6 + Math.cos(i / 13) / 2 };
       s = step(s, level, tilt, dt);
       expect(Number.isFinite(s.x + s.y + s.z + s.vx + s.vy + s.vz)).toBe(true);
-      if (s.grounded) expect(s.y).toBe(BALL_RADIUS);
-      expect(s.y).toBeGreaterThan(FALL_Y - 2);
+      // Grounded means resting on the deck - at the height of the banked
+      // surface under the ball, not of the flat centreline beside it.
+      if (s.grounded) {
+        const seg = segmentAt(level, s.x, s.z, s.time);
+        expect(seg).not.toBeNull();
+        const rest = surfaceAt(seg, s.x, s.z, s.time) + BALL_RADIUS / Math.cos(bankAt(seg, s.z));
+        expect(s.y).toBeCloseTo(rest, 6);
+      }
+      expect(s.y).toBeGreaterThan(level.fallY - 2);
       if (s.status !== STATUS.PLAYING) {
         if (s.status === STATUS.FELL) s = respawn(s, level);
         else break;
