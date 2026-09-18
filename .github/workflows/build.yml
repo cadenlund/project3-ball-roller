@@ -1,0 +1,60 @@
+# Automated build.
+#
+# Separate from tests/test.yml on purpose: that workflow's `jest` job is the
+# required status check on main, and renaming or moving it would change the
+# check's name and quietly stop it gating anything.
+#
+# `expo export` bundles the real app - the JS for Android and iOS, and the
+# static web build - without needing any signing credentials or an Expo
+# account, so this proves the app actually builds on a clean machine rather
+# than only on the one it was written on. Nothing is published anywhere; the
+# output is attached to the run as a downloadable artifact.
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  export:
+    name: expo export
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # `npm ci` rather than `npm install`: it installs exactly what the
+      # lockfile pins, so a green run here means the same tree everyone
+      # else has, not whatever resolved today.
+      - run: npm ci
+
+      # Catches a broken app.json before the bundler gets a chance to fail
+      # with something less legible.
+      - name: Check the app config resolves
+        run: npx expo config --type public > /dev/null
+
+      - name: Bundle for Android, iOS and web
+        run: npx expo export --platform all --output-dir dist
+
+      # Proof the bundle is real rather than an empty directory the exporter
+      # happened to create.
+      - name: Report what came out
+        run: |
+          echo "### Build output" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          du -sh dist >> "$GITHUB_STEP_SUMMARY"
+          find dist -maxdepth 2 -type d | sort >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          test -s dist/metadata.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ball-roller-${{ github.sha }}
+          path: dist
+          retention-days: 30
