@@ -6,6 +6,9 @@ centreline that bends, banks, climbs and plunges; jump the gaps off bounce
 pads, slam through speed boosters, dodge the spinners, find the switch that
 opens the gate, and try not to fall off the sides.
 
+[![tests](https://github.com/cadenlund/project3-ball-roller/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/cadenlund/project3-ball-roller/actions/workflows/test.yml)
+[![build](https://github.com/cadenlund/project3-ball-roller/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/cadenlund/project3-ball-roller/actions/workflows/build.yml)
+
 By Caden Lund, Ben Gutowski and Jordan Berger.
 
 ## In game
@@ -39,6 +42,27 @@ Where there is no accelerometer (simulator, web, desktop) the game falls back
 automatically: **WASD or arrow keys** on web, and an on-screen D-pad
 everywhere else. `useTilt` picks the source at startup; nothing else in the
 game knows or cares which one is live.
+
+## Continuous integration
+
+Both workflows run on every push to `main` and on every pull request, and both
+are public &mdash; anyone can open a run and read the full log without an
+account.
+
+| | |
+|---|---|
+| **Tests** | <https://github.com/cadenlund/project3-ball-roller/actions/workflows/test.yml> |
+| **Build** | <https://github.com/cadenlund/project3-ball-roller/actions/workflows/build.yml> |
+
+`tests` runs the whole suite on a clean `npm ci` tree. `build` runs
+`expo export --platform all`, which bundles the real app &mdash; the JS for
+Android and iOS and the static web build &mdash; and attaches the output to the
+run as a downloadable artifact. It needs no signing credentials and no Expo
+account, and publishes nothing: a green run is proof the app builds on a clean
+machine, not that it shipped anywhere.
+
+To make the build publish as well, add an `EXPO_TOKEN` secret and swap the
+export step for `eas build`; nothing else in the workflow has to change.
 
 ## Layout
 
