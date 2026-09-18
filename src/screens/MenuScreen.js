@@ -1,4 +1,5 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FeedbackPressable as Pressable } from '../components/FeedbackPressable';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { LEVELS, LEVEL_COUNT } from '../game/levels';
 import { isUnlocked, totalScore } from '../game/progress';

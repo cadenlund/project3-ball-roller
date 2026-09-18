@@ -1,5 +1,6 @@
+import { FeedbackPressable as Pressable } from '../components/FeedbackPressable';
 import { useEffect, useRef } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, StyleSheet, Text, View } from 'react-native';
 
 import { formatTime } from '../game/scoring';
 import { COLORS } from '../theme';

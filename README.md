@@ -77,3 +77,11 @@ npm install
 npm test
 npx expo start      # scan the QR code with Expo Go
 ```
+
+## Sound credits
+
+The seven WAV effects in `assets/sounds/` are original synthesized sounds created
+for Ball Roller and dedicated to the public domain under CC0 1.0
+(https://creativecommons.org/publicdomain/zero/1.0/). No sampled recordings are used.
+Regenerate them with `python3 scripts/generate-sounds.py`. Audio uses `expo-audio`;
+the Sound setting mutes effects and the rolling loop, including pending playback.

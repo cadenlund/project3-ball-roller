@@ -50,6 +50,8 @@ export function createGameState(level) {
     status: STATUS.PLAYING,
     coins: level.coins.map(() => false), // collected flags, by index
     falls: 0,
+    events: [],
+    feedback: { pad: 0, spinner: 0, landing: 0, lastPad: -1 },
   };
 }
 
@@ -62,7 +64,7 @@ const clamp1 = (v) => Math.max(-1, Math.min(1, v));
 export function step(state, level, tilt, dt) {
   if (state.status !== STATUS.PLAYING) return state;
 
-  const s = { ...state, coins: [...state.coins] };
+  const s = { ...state, coins: [...state.coins], events: [], feedback: { ...state.feedback } };
   s.time += dt;
 
   // Tilt drives both axes. Weaker in the air - you can nudge a jump, not
@@ -95,6 +97,8 @@ export function step(state, level, tilt, dt) {
       s.z += ux * sign * clear;
       s.vx += -uz * sign * SPIN_PUSH;
       s.vz += ux * sign * SPIN_PUSH;
+      s.events.push({ type: 'spinner' });
+      s.feedback.spinner++;
     }
   }
 
@@ -109,12 +113,19 @@ export function step(state, level, tilt, dt) {
     s.y = BALL_RADIUS;
     s.vy = 0;
     s.grounded = true;
+    if (!state.grounded) {
+      s.events.push({ type: 'landing' });
+      s.feedback.landing++;
+    }
   }
 
   // Bounce pads launch a grounded ball.
   if (s.grounded) {
-    for (const p of level.pads) {
+    for (const [index, p] of level.pads.entries()) {
       if (Math.abs(s.x - p.x) < PAD_RADIUS && Math.abs(s.z - p.z) < PAD_RADIUS) {
+        s.events.push({ type: 'pad', index });
+        s.feedback.pad++;
+        s.feedback.lastPad = index;
         s.vy = p.power;
         s.grounded = false;
         break;
@@ -128,16 +139,21 @@ export function step(state, level, tilt, dt) {
     const dy = s.y - (c.y ?? 0.9);
     const dz = s.z - c.z;
     const r = COIN_RADIUS + BALL_RADIUS;
-    if (dx * dx + dy * dy + dz * dz < r * r) s.coins[i] = true;
+    if (dx * dx + dy * dy + dz * dz < r * r) {
+      s.coins[i] = true;
+      s.events.push({ type: 'coin', index: i });
+    }
   });
 
   if (s.y < FALL_Y) {
     s.status = STATUS.FELL;
+    s.events.push({ type: 'fall' });
     return s;
   }
 
   if (s.z >= level.goalZ) {
     s.status = STATUS.FINISHED;
+    s.events.push({ type: 'goal' });
   }
 
   return s;
@@ -156,5 +172,6 @@ export function respawn(state, level) {
     grounded: true,
     status: STATUS.PLAYING,
     falls: state.falls + 1,
+    events: [],
   };
 }

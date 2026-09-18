@@ -1,5 +1,6 @@
+import { FeedbackPressable as Pressable } from '../components/FeedbackPressable';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { COLORS } from '../theme';
 

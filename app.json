@@ -6,8 +6,25 @@
     "orientation": "portrait",
     "newArchEnabled": true,
     "userInterfaceStyle": "dark",
-    "ios": { "bundleIdentifier": "com.cadenlund.ballroller", "supportsTablet": true },
-    "android": { "package": "com.cadenlund.ballroller" },
-    "web": { "bundler": "metro" }
+    "ios": {
+      "bundleIdentifier": "com.cadenlund.ballroller",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.cadenlund.ballroller"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false
+        }
+      ]
+    ]
   }
 }
