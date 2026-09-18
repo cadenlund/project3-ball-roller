@@ -7,9 +7,10 @@
  *
  * Levels are authored as a `run`: an ordered list of track pieces, each with
  * a length, a width and a lateral offset `x`, optionally followed by a `gap`
- * of empty space. `buildLevel` turns that into the absolute segment spans the
- * engine and the renderer share, so a level reads as one list, not a pile of
- * coordinates.
+ * of empty space. A piece may also carry `moving: { amplitude, speed, phase }`
+ * to slide side to side, so the safe line shifts under the player.
+ * `buildLevel` turns that into the absolute segment spans the engine and the
+ * renderer share, so a level reads as one list, not a pile of coordinates.
  *
  * pads     - bounce pads; roll over one to launch and clear the next gap
  * spinners - bars that sweep the track and shove the ball sideways
@@ -52,7 +53,10 @@ export function buildLevel(raw) {
   const segments = [];
   let z = 0;
   for (const piece of raw.run) {
-    segments.push({ z0: z, z1: z + piece.length, x: piece.x ?? 0, width: piece.width });
+    segments.push({
+      z0: z, z1: z + piece.length, x: piece.x ?? 0, width: piece.width,
+      ...(piece.moving ? { moving: piece.moving } : {}),
+    });
     z += piece.length + (piece.gap ?? 0);
   }
   const last = segments[segments.length - 1];
@@ -65,15 +69,39 @@ export function buildLevel(raw) {
     segments,
     totalLength: z,
     goalZ: raw.goalZ ?? last.z1 - 2,
-    start: { x: segments[0].x, z: 3 },
+    // Where the first segment actually is at t=0, not where it was authored:
+    // a level opening on a moving platform would otherwise spawn the ball
+    // beside the deck rather than on it.
+    start: { x: segmentCenter(segments[0], 0), z: 3 },
   };
 }
 
-/** The track segment under (x, z), or null - null underfoot means falling. */
-export function segmentAt(level, x, z) {
+/**
+ * How far a segment has slid sideways from its authored x at `time`. Zero for
+ * ordinary track; a moving platform swings as a sine so it is continuous,
+ * reversible and identical on every replay of the same moment.
+ */
+export function segmentShift(seg, time) {
+  if (!seg.moving) return 0;
+  const { amplitude, speed, phase = 0 } = seg.moving;
+  return amplitude * Math.sin(phase + speed * time);
+}
+
+/** Where a segment's centre actually is at `time`. */
+export function segmentCenter(seg, time) {
+  return seg.x + segmentShift(seg, time);
+}
+
+/**
+ * The track segment under (x, z) at `time`, or null - null underfoot means
+ * falling. `time` only matters where a level uses moving platforms.
+ */
+export function segmentAt(level, x, z, time = 0) {
   return (
     level.segments.find(
-      (s) => z >= s.z0 && z <= s.z1 && Math.abs(x - s.x) <= s.width / 2 + BALL_RADIUS * 0.4
+      (s) =>
+        z >= s.z0 && z <= s.z1 &&
+        Math.abs(x - segmentCenter(s, time)) <= s.width / 2 + BALL_RADIUS * 0.4
     ) ?? null
   );
 }

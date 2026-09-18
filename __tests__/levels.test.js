@@ -9,6 +9,9 @@ import {
 } from '../src/game/levels';
 import { GRAVITY } from '../src/game/engine';
 
+// Enough of a spread to cover any platform's cycle when checking reachability.
+const SWING_SAMPLES = Array.from({ length: 64 }, (_, i) => (i * 12) / 64);
+
 test('there are five levels with unique, sequential ids', () => {
   expect(LEVEL_COUNT).toBe(5);
   expect(LEVELS.map((l) => l.id)).toEqual([1, 2, 3, 4, 5]);
@@ -72,6 +75,26 @@ describe.each(LEVELS)('level $id ($name)', (level) => {
     }
   });
 
+  test('pads and spinners are never mounted on a moving platform', () => {
+    // Both are authored in absolute world coordinates, so a sliding deck
+    // would swim out from under them. Keep them on solid track.
+    for (const thing of [...level.pads, ...level.spinners]) {
+      const seg = level.segments.find((s) => thing.z >= s.z0 && thing.z <= s.z1);
+      expect(seg?.moving).toBeUndefined();
+    }
+  });
+
+  test('a moving platform never swings so far that it leaves its lane behind', () => {
+    for (const seg of level.segments) {
+      if (!seg.moving) continue;
+      expect(seg.moving.amplitude).toBeGreaterThan(0);
+      expect(Math.abs(seg.moving.speed)).toBeGreaterThan(0.1);
+      // A deck that slides more than its own width past a neighbour reads as
+      // teleporting rather than sliding.
+      expect(seg.moving.amplitude).toBeLessThanOrEqual(seg.width);
+    }
+  });
+
   test('every gap has a pad shortly before it, strong enough to clear it', () => {
     for (let i = 1; i < level.segments.length; i++) {
       const prev = level.segments[i - 1];
@@ -99,7 +122,9 @@ describe.each(LEVELS)('level $id ($name)', (level) => {
 
   test('every coin is reachable: over the track, or low over a jumpable gap', () => {
     for (const c of level.coins) {
-      const onTrack = segmentAt(level, c.x, c.z) != null;
+      // Sample the swing: a coin over a moving platform only has to be
+      // reachable at some point in the deck's travel, not at t=0.
+      const onTrack = SWING_SAMPLES.some((t) => segmentAt(level, c.x, c.z, t) != null);
       if (onTrack) continue;
       // Over a gap: must be within one, and low enough to grab mid-jump.
       const gap = level.segments.some(
