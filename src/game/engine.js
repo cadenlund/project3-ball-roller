@@ -6,9 +6,10 @@
  * device. `step()` takes the current state plus a tilt vector and returns the
  * next state; it never mutates its input.
  *
- * The world: the ball rolls forward along +Z on its own at the level's
- * cruising speed. tilt.x steers left and right; tilt.y leans forward (faster)
- * or back (brakes). Leave the track under the ball and gravity takes over.
+ * The world: the track runs along +Z and the ball goes only where it is
+ * tilted - tilt.y rolls it forward and back, tilt.x steers it left and right,
+ * like a marble on a board. Leave the track under the ball and gravity takes
+ * over.
  */
 
 import {
@@ -19,6 +20,7 @@ import {
   SPINNER_HALF_WIDTH,
   SPINNER_HEIGHT,
   segmentAt,
+  segmentShift,
 } from './levels';
 
 export const GRAVITY = 55;        // world units/s^2
@@ -106,13 +108,22 @@ export function step(state, level, tilt, dt) {
   s.z += s.vz * dt;
 
   // Gravity, then let the track catch the ball if it is there to catch it.
+  // Grounding is tested against where the track is *now*, so a platform that
+  // has slid out from under the ball drops it.
   s.vy -= GRAVITY * dt;
   s.y += s.vy * dt;
   s.grounded = false;
-  if (s.y <= BALL_RADIUS && s.vy <= 0 && segmentAt(level, s.x, s.z)) {
+  const floor = s.y <= BALL_RADIUS && s.vy <= 0 ? segmentAt(level, s.x, s.z, s.time) : null;
+  if (floor) {
     s.y = BALL_RADIUS;
     s.vy = 0;
     s.grounded = true;
+    // A moving platform carries what is standing on it: the ball keeps its
+    // place on the deck rather than being left behind by it. Only grounded -
+    // a ball in the air is not held by anything.
+    if (floor.moving) {
+      s.x += segmentShift(floor, s.time) - segmentShift(floor, state.time);
+    }
     if (!state.grounded) {
       s.events.push({ type: 'landing' });
       s.feedback.landing++;

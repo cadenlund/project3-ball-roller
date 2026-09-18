@@ -3,7 +3,7 @@ import { Object3D } from 'three';
 import { advanceEffects, createEffects, PARTICLE_COUNT } from '../game/visualEffects';
 import { Canvas, useFrame } from './SceneCanvas';
 
-import { BALL_RADIUS, PAD_RADIUS, SPINNER_HALF_WIDTH } from '../game/levels';
+import { BALL_RADIUS, PAD_RADIUS, SPINNER_HALF_WIDTH, segmentShift } from '../game/levels';
 
 
 /**
@@ -27,6 +27,11 @@ function World({ level, stateRef }) {
   const dummy = useMemo(() => new Object3D(), []);
   const spinnerRefs = useRef([]);
   const coinRefs = useRef([]);
+  const segRefs = useRef([]);
+  const movingSegments = useMemo(
+    () => level.segments.map((seg, i) => (seg.moving ? i : -1)).filter((i) => i >= 0),
+    [level]
+  );
 
   useFrame(({ camera }, dt) => {
     const s = stateRef.current;
@@ -47,6 +52,13 @@ function World({ level, stateRef }) {
     const shake = fx.shake * 0.55;
     camera.position.set(s.x * 0.5 + Math.sin(fx.age * 91) * shake, 5.5 + Math.cos(fx.age * 73) * shake, -s.z + 9);
     camera.lookAt(s.x * 0.7, 0.8, -s.z - 7);
+
+    // Sliding platforms follow the same clock the physics reads, so what is
+    // drawn underfoot is exactly what the ball is standing on.
+    for (const i of movingSegments) {
+      const group = segRefs.current[i];
+      if (group) group.position.x = level.segments[i].x + segmentShift(level.segments[i], s.time);
+    }
 
     padRefs.current.forEach((pad, i) => {
       if (!pad) return;
@@ -97,7 +109,11 @@ function World({ level, stateRef }) {
       <directionalLight position={[-8, 6, 8]} intensity={0.4} color={theme.rimLight} />
 
       {level.segments.map((seg, i) => (
-        <group key={`seg${i}`} position={[seg.x, 0, -(seg.z0 + seg.z1) / 2]}>
+        <group
+          key={`seg${i}`}
+          ref={(el) => (segRefs.current[i] = el)}
+          position={[seg.x + segmentShift(seg, 0), 0, -(seg.z0 + seg.z1) / 2]}
+        >
           <mesh position={[0, -0.55, 0]}>
             <boxGeometry args={[seg.width, 1.1, seg.z1 - seg.z0]} />
             <meshStandardMaterial color={theme.track} emissive={theme.trackGlow} emissiveIntensity={0.25} />

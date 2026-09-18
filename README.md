@@ -74,16 +74,44 @@ as one list, not a pile of coordinates.
 | # | Name | Idea | Par |
 |---|---|---|---|
 | 1 | First Roll | Wide lane, learn to steer | 14s |
-| 2 | The Narrows | The track thins and shifts | 17s |
-| 3 | Mind the Gap | Bounce pads launch you over holes in the track | 24s |
-| 4 | Spin Cycle | Rotating bars sweep the lane | 26s |
-| 5 | The Gauntlet | Everything at once | 32s |
+| 2 | The Narrows | The track thins and shifts | 16s |
+| 3 | Mind the Gap | Bounce pads launch you over holes in the track | 21s |
+| 4 | Spin Cycle | Rotating bars sweep the lane | 25s |
+| 5 | The Gauntlet | Gaps, bars and narrow lanes together | 32s |
+| 6 | Sidewinder | The ground itself slides side to side | 21s |
+| 7 | Crossfire | Spinners over lanes barely wider than the ball | 23s |
+| 8 | The Long Way Home | The finale: every mechanic, at speed | 32s |
+
+Pars are set against a scripted clean run of each level rather than by
+feel &mdash; see `test-utils/autopilot.js` and `__tests__/playable.test.js`,
+which fail the build if a level becomes impossible or its par becomes
+unbeatable.
 
 ## Scoring
 
 1000 base, +40/second under par, +250 per coin, -150 per fall, floored at
 zero. Stars: one for finishing, two for beating par, three for every coin.
 Levels unlock in order, and the best run per level is kept on device.
+
+## Working on it
+
+Branch, open a pull request, get a green check, merge. Every push and pull
+request runs the full suite on GitHub Actions
+(`.github/workflows/test.yml`), and `main` requires it to pass, so a broken
+physics change cannot land by accident.
+
+The suite is the fast way to know a change is sound: `engine.js`,
+`levels.js`, `scoring.js` and `loop.js` are all pure functions over plain
+data, so they run without a device or a GPU. Anything that changes how the
+ball moves should come with a test that would have caught the change going
+wrong &mdash; the level suite already refuses geometry that is unplayable,
+and `__tests__/playable.test.js` refuses a level that cannot be finished or
+a par that cannot be beaten.
+
+```bash
+npm test            # the whole suite
+npm test -- engine  # one file, by name
+```
 
 ## Running it
 

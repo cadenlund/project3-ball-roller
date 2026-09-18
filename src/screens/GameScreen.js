@@ -1,11 +1,12 @@
 import { FeedbackPressable as Pressable } from '../components/FeedbackPressable';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, AppState, StyleSheet, Text, View } from 'react-native';
 
 import { playGameHaptics } from '../game/haptics';
 import { playGameSounds, setRolling } from '../game/sounds';
 import { Scene } from '../components/Scene';
 import { STATUS, createGameState, respawn, step } from '../game/engine';
+import { createStepper } from '../game/loop';
 import { getLevel } from '../game/levels';
 import { formatTime, scoreBreakdown, starsFor } from '../game/scoring';
 import { COLORS } from '../theme';
@@ -26,14 +27,21 @@ export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
   const { tilt, source, setTilt } = tiltHook;
   const [view, setView] = useState(() => createGameState(level));
   const [countdown, setCountdown] = useState('3');
+  const [paused, setPaused] = useState(false);
   const stateRef = useRef(view);
   const rafRef = useRef(null);
-  const frozenRef = useRef(true); // mirrors `countdown != null`; read every frame
+  // Two independent reasons the simulation holds still: the 3-2-1 countdown
+  // and the pause menu. Refs because the frame loop reads them every frame
+  // and must see the current value without being re-created.
+  const frozenRef = useRef(true); // mirrors `countdown != null`
+  const pausedRef = useRef(false);
   const countdownTimers = useRef([]);
+  const stepperRef = useRef(null);
 
   const runCountdown = () => {
     countdownTimers.current.forEach(clearTimeout);
     frozenRef.current = true;
+    setCountdown(COUNTDOWN[0].value);
     countdownTimers.current = COUNTDOWN.map(({ at, value }) =>
       setTimeout(() => {
         setCountdown(value);
@@ -42,22 +50,56 @@ export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
     );
   };
 
+  const pause = () => {
+    if (pausedRef.current || stateRef.current.status !== STATUS.PLAYING) return;
+    pausedRef.current = true;
+    setPaused(true);
+    stepperRef.current?.reset(); // buffered time must not be paid back on resume
+    setRolling(0); // the rolling loop should not hum under the pause menu
+  };
+
+  // Resuming replays the countdown rather than dropping the player straight
+  // back into a moving ball.
+  const resume = () => {
+    pausedRef.current = false;
+    setPaused(false);
+    runCountdown();
+  };
+
+  const restart = () => {
+    pausedRef.current = false;
+    setPaused(false);
+    stepperRef.current?.reset();
+    setRolling(0);
+    stateRef.current = createGameState(level);
+    setView(stateRef.current);
+    runCountdown();
+  };
+
   useEffect(() => {
     stateRef.current = createGameState(level);
     setView(stateRef.current);
     runCountdown();
     let last = null;
 
+    // Physics runs on fixed slices, not on frame times, so the level plays
+    // the same on a 60Hz screen as on a 120Hz one. Feedback fires per slice
+    // that produced events; the view is pushed once per frame.
+    const stepper = createStepper((dt) => {
+      const previous = stateRef.current;
+      stateRef.current = step(previous, level, tilt.current, dt);
+      if (stateRef.current !== previous) {
+        playGameSounds(stateRef.current);
+        playGameHaptics(stateRef.current);
+      }
+    });
+    stepperRef.current = stepper;
+
     const loop = (now) => {
-      if (last != null && !frozenRef.current) {
-        const dt = Math.min((now - last) / 1000, 1 / 30);
-        const previous = stateRef.current;
-        stateRef.current = step(previous, level, tilt.current, dt);
-        if (stateRef.current !== previous) {
-          playGameSounds(stateRef.current);
-          playGameHaptics(stateRef.current);
-        }
-        setView(stateRef.current);
+      // `last` is refreshed every frame even while held, so no wall-clock
+      // time accumulates across a pause and the ball never jumps on resume.
+      if (last != null && !frozenRef.current && !pausedRef.current) {
+        if (stepper.advanceBy((now - last) / 1000) > 0) setView(stateRef.current);
       }
       last = now;
       rafRef.current = requestAnimationFrame(loop);
@@ -70,6 +112,15 @@ export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
     };
   }, [levelId]);
 
+  // Leaving the app mid-run pauses it, so the player does not come back to a
+  // ball that kept rolling (or a clock that kept running) without them.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next !== 'active') pause();
+    });
+    return () => sub.remove();
+  }, []);
+
   // A fall drops the ball back at the start after a short beat, then runs
   // the same 3-2-1 countdown as the level start before play resumes.
   useEffect(() => {
@@ -77,6 +128,7 @@ export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
     const t = setTimeout(() => {
       stateRef.current = respawn(stateRef.current, level);
       setView(stateRef.current);
+      stepperRef.current?.reset();
       runCountdown();
     }, 550);
     return () => clearTimeout(t);
@@ -105,8 +157,8 @@ export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
       <Scene level={level} stateRef={stateRef} />
 
       <View style={styles.hud} pointerEvents="box-none">
-        <Pressable onPress={onExit} testID="exit" hitSlop={12}>
-          <Text style={styles.back}>&larr;</Text>
+        <Pressable onPress={pause} testID="pause" hitSlop={12}>
+          <Text style={styles.pauseGlyph}>&#10073;&#10073;</Text>
         </Pressable>
         <View>
           <Text style={styles.levelName}>{level.name}</Text>
@@ -134,14 +186,32 @@ export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
         </View>
       )}
 
-      {countdown && (
+      {countdown && !paused && (
         <View style={styles.countdown} pointerEvents="none">
           <CountdownNumber value={countdown} />
         </View>
       )}
 
+      {paused && (
+        <View style={styles.pauseSheet} testID="pause-menu">
+          <Text style={styles.pauseTitle}>Paused</Text>
+          <Text style={styles.pauseMeta}>
+            {formatTime(view.time)}  &middot;  {coinsCollected}/{level.coins.length} coins
+          </Text>
+          <Pressable onPress={resume} testID="resume" style={[styles.menuButton, styles.menuButtonPrimary]}>
+            <Text style={styles.menuButtonTextPrimary}>Resume</Text>
+          </Pressable>
+          <Pressable onPress={restart} testID="restart" style={styles.menuButton}>
+            <Text style={styles.menuButtonText}>Restart level</Text>
+          </Pressable>
+          <Pressable onPress={onExit} testID="quit" style={styles.menuButton}>
+            <Text style={styles.menuButtonText}>Quit to menu</Text>
+          </Pressable>
+        </View>
+      )}
+
       {/* On-screen pad so the game is playable with no gyro and no keyboard. */}
-      {source !== 'gyro' && (
+      {source !== 'gyro' && !paused && (
         <View style={styles.pad} pointerEvents="box-none">
           {[
             { id: 'up', dx: 0, dy: 1 }, { id: 'left', dx: -1, dy: 0 },
@@ -202,7 +272,7 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 64, left: 0, right: 0, paddingHorizontal: 22,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
-  back: { color: COLORS.textMuted, fontSize: 28, width: 40 },
+  pauseGlyph: { color: COLORS.textMuted, fontSize: 22, width: 40, letterSpacing: 2 },
   levelName: { color: COLORS.text, fontSize: 18, fontWeight: '700', textAlign: 'center' },
   hint: { color: COLORS.textMuted, fontSize: 12, textAlign: 'center', marginTop: 2 },
   timer: {
@@ -240,6 +310,23 @@ const styles = StyleSheet.create({
     color: COLORS.gold, fontSize: 72, fontWeight: '900',
     textShadowColor: COLORS.gold, textShadowRadius: 30, textShadowOffset: { width: 0, height: 0 },
   },
+  pauseSheet: {
+    position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
+    alignItems: 'center', justifyContent: 'center', gap: 12,
+    backgroundColor: COLORS.void + 'e6', paddingHorizontal: 40,
+  },
+  pauseTitle: {
+    color: COLORS.text, fontSize: 34, fontWeight: '900', letterSpacing: 1,
+  },
+  pauseMeta: { color: COLORS.textMuted, fontSize: 14, marginBottom: 14 },
+  menuButton: {
+    width: '100%', maxWidth: 280, alignItems: 'center', paddingVertical: 14,
+    borderRadius: 14, borderWidth: 1, borderColor: COLORS.border,
+    backgroundColor: COLORS.surface + 'cc',
+  },
+  menuButtonPrimary: { borderColor: COLORS.cyan, backgroundColor: COLORS.cyan + '22' },
+  menuButtonText: { color: COLORS.text, fontSize: 16, fontWeight: '600' },
+  menuButtonTextPrimary: { color: COLORS.cyanBright, fontSize: 16, fontWeight: '800' },
   pad: { position: 'absolute', bottom: 76, alignSelf: 'center', width: 168, height: 168 },
   padBtn: {
     position: 'absolute', width: 54, height: 54, borderRadius: 12,
