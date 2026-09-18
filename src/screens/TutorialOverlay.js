@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { FeedbackPressable as Pressable } from '../components/FeedbackPressable';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { COLORS } from '../theme';
 

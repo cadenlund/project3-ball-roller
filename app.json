@@ -6,8 +6,40 @@
     "orientation": "portrait",
     "newArchEnabled": true,
     "userInterfaceStyle": "dark",
-    "ios": { "bundleIdentifier": "com.cadenlund.ballroller", "supportsTablet": true },
-    "android": { "package": "com.cadenlund.ballroller" },
-    "web": { "bundler": "metro" }
+    "ios": {
+      "bundleIdentifier": "com.cadenlund.ballroller",
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.cadenlund.ballroller",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/branding/adaptive-icon.png",
+        "backgroundColor": "#171025"
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/branding/icon.png"
+    },
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/branding/splash.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#171025"
+        }
+      ]
+    ],
+    "icon": "./assets/branding/icon.png"
   }
 }

@@ -4,12 +4,27 @@ A 3D tilt-controlled ball rolling game on a narrow track floating in space.
 Tilt to roll the ball down the track, jump the gaps off bounce pads, dodge
 the spinners, and try not to fall off the sides.
 
-By Caden Lund, Ben Gutow and Jordan.
+By Caden Lund, Ben Gutowski and Jordan Berger.
 
-> **Status: foundation.** The structure, physics, levels, input and scoring
-> are in place and tested. Art, sound, menu polish and level tuning are the
-> work still to come &mdash; split up in the
-> [issues](https://github.com/cadenlund/project3-ball-roller/issues).
+## In game
+
+Actual browser captures of the app at a phone-sized viewport. The menu uses sample
+saved progress to show unlocked levels; the gameplay uses the real physics and
+keyboard input.
+
+| Level select | First Roll · dusk rose | Mind the Gap · lagoon |
+|---|---|---|
+| ![Level select with themed cards](docs/media/menu.png) | ![Ball on the rose-colored First Roll track](docs/media/level-1.png) | ![Bounce pads and coins on the lagoon track](docs/media/level-3.png) |
+
+![A run through Mind the Gap with bounce pads and gaps](docs/media/gameplay.gif)
+
+## Team and feature ownership
+
+| Person | Features |
+|---|---|
+| Caden Lund | Physics, level design and engine tests; ongoing work: calibration, pause/resume, later levels, moving platforms and CI (#1–#5). |
+| Ben Gutowski | Menu and level selection, score/results presentation, persistent settings, tutorial and countdown/HUD polish. |
+| Jordan Berger (`JordanFFBerger`) | Sound effects (#11), haptics (#12), pickup/impact/finish animations (#13), per-level palettes and track edges (#14), app branding and this media gallery (#15). |
 
 ## Controls
 
@@ -34,7 +49,7 @@ game knows or cares which one is live.
 | `src/game/useTilt.js` | Accelerometer input with keyboard fallback |
 | `src/components/Scene.js` | Draws a level with three.js (via expo-gl) |
 | `src/screens/` | Level select and gameplay screens |
-| `__tests__/` | 105 tests over levels, physics and scoring |
+| `__tests__/` | Tests for physics, scoring, settings, feedback and themes |
 
 ### Why it is split this way
 
@@ -72,8 +87,64 @@ Levels unlock in order, and the best run per level is kept on device.
 
 ## Running it
 
+Install Node.js 24 LTS (includes npm) and Expo Go compatible with SDK 57 on your
+phone. In the project directory:
+
 ```bash
-npm install
-npm test
+npm ci
+npm test -- --runInBand
 npx expo start      # scan the QR code with Expo Go
 ```
+
+Use the same Wi-Fi network, or `npx expo start --tunnel` if the phone cannot
+reach the computer. For browser play, run `npm run web` and use WASD/arrow keys.
+On Ubuntu, if DevTools reports missing shared libraries, install
+`sudo apt-get install libnspr4 libnss3 libasound2t64`.
+
+The Sound and Haptics switches in Settings apply immediately. Haptics need a
+physical device and are disabled on web. Rolling audio stops when stationary,
+airborne, backgrounded or outside gameplay.
+
+## App branding
+
+`assets/branding/mark.svg` is the editable, original ball-on-track mark. Its PNG
+exports provide the app icon, Android adaptive foreground and splash image via
+`app.json` and the `expo-splash-screen` plugin. Regenerate with
+`node scripts/generate-branding.cjs` after installing the optional `sharp` tool.
+The branding artwork is CC0 1.0, like the sound assets below.
+
+Icon and splash changes require a fresh native build (`npm run android` with
+Android Studio/SDK installed, or `npm run ios` on macOS with Xcode). Expo Go does
+not reproduce the installed app's splash screen; verify a release build as
+[Expo documents](https://docs.expo.dev/develop/user-interface/splash-screen-and-app-icon/).
+
+For device review: collect a coin, launch from a pad, land, hit a spinner, fall,
+and finish a level. Repeat with Sound/Haptics disabled. Check each level palette,
+then background/foreground the app and confirm audio does not continue in the
+background. Particle effects use a fixed pool and a single instanced draw call;
+60fps still needs profiling on the target phone.
+
+
+## Sound credits
+
+The seven WAV effects in `assets/sounds/` are original synthesized sounds created
+for Ball Roller and dedicated to the public domain under CC0 1.0
+(https://creativecommons.org/publicdomain/zero/1.0/). No sampled recordings are used.
+Regenerate them with `python3 scripts/generate-sounds.py`. Audio uses `expo-audio`;
+the Sound setting mutes effects and the rolling loop, including pending playback.
+
+### Reproducing the README captures
+
+Install optional capture tools outside the app dependencies:
+
+```bash
+npm install --prefix /tmp/ball-roller-media playwright sharp gifenc
+/tmp/ball-roller-media/node_modules/.bin/playwright install chromium
+npx expo export --platform web --output-dir /tmp/ball-roller-web
+python3 -m http.server 8088 --bind 127.0.0.1 --directory /tmp/ball-roller-web
+# In a second terminal, from this repository:
+NODE_PATH=/tmp/ball-roller-media/node_modules node scripts/capture-media.cjs
+```
+
+The capture script seeds sample progress in its isolated browser profile and
+records keyboard-controlled play; it does not change your saved phone progress.

@@ -1,6 +1,9 @@
+import { FeedbackPressable as Pressable } from '../components/FeedbackPressable';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, StyleSheet, Text, View } from 'react-native';
 
+import { playGameHaptics } from '../game/haptics';
+import { playGameSounds, setRolling } from '../game/sounds';
 import { Scene } from '../components/Scene';
 import { STATUS, createGameState, respawn, step } from '../game/engine';
 import { getLevel } from '../game/levels';
@@ -48,7 +51,12 @@ export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
     const loop = (now) => {
       if (last != null && !frozenRef.current) {
         const dt = Math.min((now - last) / 1000, 1 / 30);
-        stateRef.current = step(stateRef.current, level, tilt.current, dt);
+        const previous = stateRef.current;
+        stateRef.current = step(previous, level, tilt.current, dt);
+        if (stateRef.current !== previous) {
+          playGameSounds(stateRef.current);
+          playGameHaptics(stateRef.current);
+        }
         setView(stateRef.current);
       }
       last = now;
@@ -56,6 +64,7 @@ export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
     };
     rafRef.current = requestAnimationFrame(loop);
     return () => {
+      setRolling(0);
       cancelAnimationFrame(rafRef.current);
       countdownTimers.current.forEach(clearTimeout);
     };
@@ -77,21 +86,22 @@ export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
     if (view.status !== STATUS.FINISHED) return;
     const coinsCollected = view.coins.filter(Boolean).length;
     const breakdown = scoreBreakdown({ time: view.time, parTime: level.parTime, coinsCollected, falls: view.falls });
-    onFinish(levelId, {
+    const finishTimer = setTimeout(() => onFinish(levelId, {
       score: breakdown.total,
       breakdown,
       time: view.time,
       coins: coinsCollected,
       falls: view.falls,
       stars: starsFor({ time: view.time, parTime: level.parTime, coinsCollected, coinTotal: level.coins.length }),
-    });
+    }), 900);
+    return () => clearTimeout(finishTimer);
   }, [view.status]);
 
   const coinsCollected = view.coins.filter(Boolean).length;
   const isLate = view.time > level.parTime;
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { backgroundColor: level.theme.background }]}>
       <Scene level={level} stateRef={stateRef} />
 
       <View style={styles.hud} pointerEvents="box-none">

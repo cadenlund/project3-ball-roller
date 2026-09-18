@@ -26,6 +26,12 @@ export function useTilt({ neutralPitch = NEUTRAL_PITCH, sensitivity = 1 } = {}) 
   const [source, setSource] = useState('none');
 
   useEffect(() => {
+    // Browser play uses keys: sensor availability can be reported without a
+    // usable device or permission, and Expo's native subscription is absent.
+    if (Platform.OS === 'web') {
+      setSource('keys');
+      return;
+    }
     let sub = null;
     let cancelled = false;
 
