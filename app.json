@@ -11,10 +11,15 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.cadenlund.ballroller"
+      "package": "com.cadenlund.ballroller",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/branding/adaptive-icon.png",
+        "backgroundColor": "#171025"
+      }
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/branding/icon.png"
     },
     "plugins": [
       [
@@ -24,7 +29,17 @@
           "recordAudioAndroid": false,
           "enableBackgroundPlayback": false
         }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/branding/splash.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#171025"
+        }
       ]
-    ]
+    ],
+    "icon": "./assets/branding/icon.png"
   }
 }

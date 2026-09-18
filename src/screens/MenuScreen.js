@@ -14,7 +14,7 @@ export function MenuScreen({ progress, onPlay, onSettings }) {
       <View style={styles.topRow}>
         <View>
           <Text style={styles.title}>Ball Roller</Text>
-          <Text style={styles.subtitle}>Caden Lund &middot; Project 3</Text>
+          <Text style={styles.subtitle}>Caden · Ben · Jordan · Project 3</Text>
         </View>
         <Pressable testID="open-settings" onPress={onSettings} hitSlop={12}>
           <Text style={styles.gear}>&#9881;</Text>

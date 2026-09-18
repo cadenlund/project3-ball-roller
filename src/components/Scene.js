@@ -1,7 +1,7 @@
 import { memo, useMemo, useRef } from 'react';
 import { Object3D } from 'three';
 import { advanceEffects, createEffects, PARTICLE_COUNT } from '../game/visualEffects';
-import { Canvas, useFrame } from '@react-three/fiber/native';
+import { Canvas, useFrame } from './SceneCanvas';
 
 import { BALL_RADIUS, PAD_RADIUS, SPINNER_HALF_WIDTH } from '../game/levels';
 
