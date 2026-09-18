@@ -93,6 +93,26 @@ unbeatable.
 zero. Stars: one for finishing, two for beating par, three for every coin.
 Levels unlock in order, and the best run per level is kept on device.
 
+## Working on it
+
+Branch, open a pull request, get a green check, merge. Every push and pull
+request runs the full suite on GitHub Actions
+(`.github/workflows/test.yml`), and `main` requires it to pass, so a broken
+physics change cannot land by accident.
+
+The suite is the fast way to know a change is sound: `engine.js`,
+`levels.js`, `scoring.js` and `loop.js` are all pure functions over plain
+data, so they run without a device or a GPU. Anything that changes how the
+ball moves should come with a test that would have caught the change going
+wrong &mdash; the level suite already refuses geometry that is unplayable,
+and `__tests__/playable.test.js` refuses a level that cannot be finished or
+a par that cannot be beaten.
+
+```bash
+npm test            # the whole suite
+npm test -- engine  # one file, by name
+```
+
 ## Running it
 
 Install Node.js 24 LTS (includes npm) and Expo Go compatible with SDK 57 on your
