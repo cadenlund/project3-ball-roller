@@ -46,6 +46,17 @@ const LEVEL_THEMES = [
     edge: '#ffc1a4', accent: '#ffc1a4', spinner: '#ff8e63', spinnerGlow: '#bb432d', ballGlow: '#ffc1a4', keyLight: '#ffe0bc', rimLight: '#fa9fb4' },
   { background: '#11112e', fog: '#11112e', track: '#595084', trackGlow: '#302552',
     edge: '#d2c2ff', accent: '#d2c2ff', pad: '#ffc266', coin: '#fff0a6', ballGlow: '#cdb1ff', keyLight: '#f1dcff', rimLight: '#9ba7ff' },
+  // 6 - deep sea: the sliding decks read best over cold, empty water.
+  { background: '#04242c', fog: '#04242c', track: '#2e6b78', trackGlow: '#123a44',
+    edge: '#9ff0ff', accent: '#9ff0ff', ballGlow: '#9ff0ff', goal: '#c7ff8f', keyLight: '#dbfaff', rimLight: '#6fd2e8' },
+  // 7 - ultraviolet: hot magenta hazards against a bruised purple void.
+  { background: '#25082c', fog: '#25082c', track: '#7a3182', trackGlow: '#431349',
+    edge: '#f6b6ff', accent: '#f6b6ff', spinner: '#ff5fa8', spinnerGlow: '#a3115a',
+    ballGlow: '#f6b6ff', keyLight: '#ffdcff', rimLight: '#c07dff' },
+  // 8 - midnight gold: the finale, cold and dark with everything gilded.
+  { background: '#0b1020', fog: '#0b1020', track: '#44507e', trackGlow: '#222a4d',
+    edge: '#ffd98a', accent: '#ffd98a', pad: '#ffd166', coin: '#fff4b0',
+    ballGlow: '#ffd98a', goal: '#7cf2c9', keyLight: '#fff0d0', rimLight: '#8fa6ff' },
 ];
 
 /** Expand a raw level into segments with absolute spans, plus start/goal. */
@@ -126,7 +137,7 @@ export const LEVELS = [
     name: 'The Narrows',
     hint: 'The track thins out. Small corrections.',
     speed: 11,
-    parTime: 17,
+    parTime: 16,
     run: [
       { length: 20, width: 6 },
       { length: 20, width: 4.4, x: 2 },
@@ -142,7 +153,7 @@ export const LEVELS = [
     name: 'Mind the Gap',
     hint: 'Orange pads launch you. Hit every one.',
     speed: 11,
-    parTime: 24,
+    parTime: 21,
     run: [
       { length: 30, width: 5, gap: 4 },
       { length: 26, width: 5, gap: 4.5 },
@@ -161,7 +172,7 @@ export const LEVELS = [
     name: 'Spin Cycle',
     hint: 'Time your way past the bars.',
     speed: 12,
-    parTime: 26,
+    parTime: 25,
     run: [{ length: 150, width: 5.4 }],
     spinners: [
       { z: 45, x: 0, length: 5, speed: 2.4, phase: 0 },
@@ -195,6 +206,66 @@ export const LEVELS = [
       { z: 160, x: 0, length: 5.2, speed: -3, phase: 0.8 },
     ],
     coins: [{ z: 82, x: -2, y: 1.8 }, { z: 107, x: 1.6 }, { z: 187, x: 0 }],
+  },
+  {
+    id: 6,
+    name: 'Sidewinder',
+    hint: 'The track slides. Ride it, do not fight it.',
+    speed: 12,
+    parTime: 21,
+    run: [
+      { length: 26, width: 5 },
+      { length: 30, width: 4.5, moving: { amplitude: 3, speed: 1.1, phase: 0 } },
+      { length: 24, width: 5 },
+      { length: 30, width: 4, moving: { amplitude: 3.5, speed: 1.4, phase: 1.6 } },
+      { length: 28, width: 5.5 },
+    ],
+    // Parked over the authored centre line, so each one is only reachable as
+    // its deck swings back through the middle.
+    coins: [{ z: 40, x: 0 }, { z: 95, x: 0 }, { z: 126, x: 0 }],
+  },
+  {
+    id: 7,
+    name: 'Crossfire',
+    hint: 'Narrow lanes, and something sweeping every one of them.',
+    speed: 12,
+    parTime: 23,
+    run: [
+      { length: 30, width: 5 },
+      { length: 26, width: 3.2 },
+      { length: 30, width: 4.5, moving: { amplitude: 2.5, speed: 1.3, phase: 0.5 } },
+      { length: 26, width: 3 },
+      { length: 24, width: 5.5 },
+    ],
+    spinners: [
+      { z: 20, x: 0, length: 5, speed: 2.6, phase: 0 },
+      { z: 44, x: 0, length: 4.5, speed: -3, phase: 1.1 },
+      { z: 99, x: 0, length: 4.5, speed: 3.2, phase: 2 },
+    ],
+    coins: [{ z: 70, x: 0 }, { z: 122, x: 1.5 }],
+  },
+  {
+    id: 8,
+    name: 'The Long Way Home',
+    hint: 'Gaps, bars and sliding ground. Everything you know.',
+    speed: 13,
+    parTime: 32,
+    run: [
+      { length: 28, width: 5 },
+      { length: 26, width: 3.4, x: 2, gap: 4.5 },
+      { length: 30, width: 4.8 },
+      { length: 30, width: 4.2, moving: { amplitude: 3, speed: 1.5, phase: 0.3 } },
+      { length: 26, width: 3.2 },
+      { length: 28, width: 4.6, moving: { amplitude: 3.5, speed: -1.8, phase: 2.2 } },
+      { length: 26, width: 5.2 },
+    ],
+    pads: [{ z: 53, x: 2, power: 20 }],
+    spinners: [
+      { z: 20, x: 0, length: 5, speed: 2.8, phase: 0 },
+      { z: 75, x: 0, length: 4.5, speed: 2.4, phase: 0.6 },
+      { z: 132, x: 0, length: 4.5, speed: -3.2, phase: 1.4 },
+    ],
+    coins: [{ z: 56, x: 2, y: 1.8 }, { z: 103, x: 0 }, { z: 160, x: 0 }, { z: 190, x: 0 }],
   },
 ].map(buildLevel);
 

@@ -74,10 +74,18 @@ as one list, not a pile of coordinates.
 | # | Name | Idea | Par |
 |---|---|---|---|
 | 1 | First Roll | Wide lane, learn to steer | 14s |
-| 2 | The Narrows | The track thins and shifts | 17s |
-| 3 | Mind the Gap | Bounce pads launch you over holes in the track | 24s |
-| 4 | Spin Cycle | Rotating bars sweep the lane | 26s |
-| 5 | The Gauntlet | Everything at once | 32s |
+| 2 | The Narrows | The track thins and shifts | 16s |
+| 3 | Mind the Gap | Bounce pads launch you over holes in the track | 21s |
+| 4 | Spin Cycle | Rotating bars sweep the lane | 25s |
+| 5 | The Gauntlet | Gaps, bars and narrow lanes together | 32s |
+| 6 | Sidewinder | The ground itself slides side to side | 21s |
+| 7 | Crossfire | Spinners over lanes barely wider than the ball | 23s |
+| 8 | The Long Way Home | The finale: every mechanic, at speed | 32s |
+
+Pars are set against a scripted clean run of each level rather than by
+feel &mdash; see `test-utils/autopilot.js` and `__tests__/playable.test.js`,
+which fail the build if a level becomes impossible or its par becomes
+unbeatable.
 
 ## Scoring
 

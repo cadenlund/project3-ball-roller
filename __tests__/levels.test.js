@@ -12,9 +12,9 @@ import { GRAVITY } from '../src/game/engine';
 // Enough of a spread to cover any platform's cycle when checking reachability.
 const SWING_SAMPLES = Array.from({ length: 64 }, (_, i) => (i * 12) / 64);
 
-test('there are five levels with unique, sequential ids', () => {
-  expect(LEVEL_COUNT).toBe(5);
-  expect(LEVELS.map((l) => l.id)).toEqual([1, 2, 3, 4, 5]);
+test('there are eight levels with unique, sequential ids', () => {
+  expect(LEVEL_COUNT).toBe(8);
+  expect(LEVELS.map((l) => l.id)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
 });
 
 test('getLevel throws for an id that does not exist', () => {
