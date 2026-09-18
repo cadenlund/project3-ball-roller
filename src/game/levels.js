@@ -26,6 +26,27 @@ export const SPINNER_HALF_WIDTH = 0.35;
 export const SPINNER_HEIGHT = 1.6; // a launched ball flies clear above this
 export const FALL_Y = -7;          // below this the ball has fallen off
 
+/** Shared semantic colors, also available to menu cards and future levels. */
+export const DEFAULT_THEME = Object.freeze({
+  background: '#171025', fog: '#171025', track: '#785470', trackGlow: '#382139',
+  edge: '#f9b8ce', accent: '#f9b8ce', pad: '#ffb44c', padGlow: '#e87129',
+  spinner: '#ff655e', spinnerGlow: '#9c2637', coin: '#ffe38c', coinGlow: '#f5a636',
+  ball: '#fff4e6', ballGlow: '#ffb477', goal: '#85f5dd', goalGlow: '#28a894',
+  keyLight: '#ffe1cb', rimLight: '#d5acff',
+});
+
+const LEVEL_THEMES = [
+  {}, // dusk rose
+  { background: '#08182a', fog: '#08182a', track: '#345d82', trackGlow: '#183655',
+    edge: '#9edfff', accent: '#9edfff', ballGlow: '#9edfff', keyLight: '#d9eeff', rimLight: '#80bfff' },
+  { background: '#082420', fog: '#082420', track: '#397b70', trackGlow: '#16453f',
+    edge: '#a2f7dc', accent: '#a2f7dc', ballGlow: '#89eacd', goal: '#e7ff9b', keyLight: '#dcffe9', rimLight: '#7bdad0' },
+  { background: '#2a1020', fog: '#2a1020', track: '#884660', trackGlow: '#4d2038',
+    edge: '#ffc1a4', accent: '#ffc1a4', spinner: '#ff8e63', spinnerGlow: '#bb432d', ballGlow: '#ffc1a4', keyLight: '#ffe0bc', rimLight: '#fa9fb4' },
+  { background: '#11112e', fog: '#11112e', track: '#595084', trackGlow: '#302552',
+    edge: '#d2c2ff', accent: '#d2c2ff', pad: '#ffc266', coin: '#fff0a6', ballGlow: '#cdb1ff', keyLight: '#f1dcff', rimLight: '#9ba7ff' },
+];
+
 /** Expand a raw level into segments with absolute spans, plus start/goal. */
 export function buildLevel(raw) {
   const segments = [];
@@ -40,6 +61,7 @@ export function buildLevel(raw) {
     spinners: [],
     coins: [],
     ...raw,
+    theme: { ...DEFAULT_THEME, ...LEVEL_THEMES[raw.id - 1], ...raw.theme },
     segments,
     totalLength: z,
     goalZ: raw.goalZ ?? last.z1 - 2,

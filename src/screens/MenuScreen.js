@@ -40,10 +40,10 @@ export function MenuScreen({ progress, onPlay, onSettings }) {
               testID={`level-${level.id}`}
               disabled={!unlocked}
               onPress={() => onPlay(level.id)}
-              style={[styles.card, !unlocked && styles.locked, best && styles.cardCleared]}
+              style={[styles.card, { borderLeftWidth: 4, borderLeftColor: level.theme.accent }, !unlocked && styles.locked, best && styles.cardCleared]}
             >
               <View style={styles.cardMain}>
-                <Text style={styles.cardNum}>{unlocked ? level.id : '\u{1F512}'}</Text>
+                <Text style={[styles.cardNum, unlocked && { color: level.theme.accent }]}>{unlocked ? level.id : '\u{1F512}'}</Text>
                 <View style={styles.cardText}>
                   <Text style={styles.cardName}>{unlocked ? level.name : 'Locked'}</Text>
                   <Text style={styles.cardMeta}>

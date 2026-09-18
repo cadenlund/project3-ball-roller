@@ -101,7 +101,7 @@ export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
   const isLate = view.time > level.parTime;
 
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { backgroundColor: level.theme.background }]}>
       <Scene level={level} stateRef={stateRef} />
 
       <View style={styles.hud} pointerEvents="box-none">
