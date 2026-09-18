@@ -2,6 +2,7 @@ import { FeedbackPressable as Pressable } from '../components/FeedbackPressable'
 import { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 
+import { playGameHaptics } from '../game/haptics';
 import { playGameSounds, setRolling } from '../game/sounds';
 import { Scene } from '../components/Scene';
 import { STATUS, createGameState, respawn, step } from '../game/engine';
@@ -52,7 +53,10 @@ export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
         const dt = Math.min((now - last) / 1000, 1 / 30);
         const previous = stateRef.current;
         stateRef.current = step(previous, level, tilt.current, dt);
-        if (stateRef.current !== previous) playGameSounds(stateRef.current);
+        if (stateRef.current !== previous) {
+          playGameSounds(stateRef.current);
+          playGameHaptics(stateRef.current);
+        }
         setView(stateRef.current);
       }
       last = now;

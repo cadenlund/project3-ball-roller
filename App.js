@@ -11,6 +11,7 @@ import { MenuScreen } from './src/screens/MenuScreen';
 import { ResultsScreen } from './src/screens/ResultsScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { TutorialOverlay } from './src/screens/TutorialOverlay';
+import { setHapticsEnabled, setHapticsActive } from './src/game/haptics';
 import { loadSounds, unloadSounds, setSoundEnabled, setSoundActive } from './src/game/sounds';
 import { COLORS } from './src/theme';
 
@@ -40,13 +41,20 @@ export default function App() {
   useEffect(() => {
     loadSounds();
     setSoundActive(AppState.currentState !== 'background' && AppState.currentState !== 'inactive');
-    const sub = AppState.addEventListener('change', (state) => setSoundActive(state === 'active'));
+    setHapticsActive(AppState.currentState !== 'background' && AppState.currentState !== 'inactive');
+    const sub = AppState.addEventListener('change', (state) => {
+      setSoundActive(state === 'active');
+      setHapticsActive(state === 'active');
+    });
     return () => { sub.remove(); unloadSounds(); };
   }, []);
 
   useEffect(() => { setSoundEnabled(settings.sound); }, [settings.sound]);
 
+  useEffect(() => { setHapticsEnabled(settings.haptics); }, [settings.haptics]);
+
   const updateSettings = (next) => {
+    setHapticsEnabled(next.haptics);
     setSoundEnabled(next.sound);
     setSettings(next);
     saveSettings(next);

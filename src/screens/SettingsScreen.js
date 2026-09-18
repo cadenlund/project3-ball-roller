@@ -2,6 +2,7 @@ import { FeedbackPressable as Pressable } from '../components/FeedbackPressable'
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
+import { haptic } from '../game/haptics';
 import { COLORS } from '../theme';
 
 const SENSITIVITY_STEPS = [0.75, 1, 1.25, 1.5];
@@ -45,7 +46,7 @@ export function SettingsScreen({ settings, onChange, onBack, onResetProgress, on
           <Switch
             testID="sound-toggle"
             value={settings.sound}
-            onValueChange={(v) => set({ sound: v })}
+            onValueChange={(v) => { set({ sound: v }); haptic('tap'); }}
             trackColor={{ false: COLORS.surfaceAlt, true: COLORS.cyanDeep }}
             thumbColor={settings.sound ? COLORS.cyan : undefined}
           />
@@ -55,7 +56,7 @@ export function SettingsScreen({ settings, onChange, onBack, onResetProgress, on
           <Switch
             testID="haptics-toggle"
             value={settings.haptics}
-            onValueChange={(v) => set({ haptics: v })}
+            onValueChange={(v) => { set({ haptics: v }); if (v) haptic('tap'); }}
             trackColor={{ false: COLORS.surfaceAlt, true: COLORS.cyanDeep }}
             thumbColor={settings.haptics ? COLORS.cyan : undefined}
           />
