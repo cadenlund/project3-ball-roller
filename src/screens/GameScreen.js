@@ -6,6 +6,7 @@ import { playGameHaptics } from '../game/haptics';
 import { playGameSounds, setRolling } from '../game/sounds';
 import { Scene } from '../components/Scene';
 import { STATUS, createGameState, respawn, step } from '../game/engine';
+import { createStepper } from '../game/loop';
 import { getLevel } from '../game/levels';
 import { formatTime, scoreBreakdown, starsFor } from '../game/scoring';
 import { COLORS } from '../theme';
@@ -35,6 +36,7 @@ export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
   const frozenRef = useRef(true); // mirrors `countdown != null`
   const pausedRef = useRef(false);
   const countdownTimers = useRef([]);
+  const stepperRef = useRef(null);
 
   const runCountdown = () => {
     countdownTimers.current.forEach(clearTimeout);
@@ -52,6 +54,7 @@ export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
     if (pausedRef.current || stateRef.current.status !== STATUS.PLAYING) return;
     pausedRef.current = true;
     setPaused(true);
+    stepperRef.current?.reset(); // buffered time must not be paid back on resume
     setRolling(0); // the rolling loop should not hum under the pause menu
   };
 
@@ -66,6 +69,7 @@ export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
   const restart = () => {
     pausedRef.current = false;
     setPaused(false);
+    stepperRef.current?.reset();
     setRolling(0);
     stateRef.current = createGameState(level);
     setView(stateRef.current);
@@ -78,18 +82,24 @@ export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
     runCountdown();
     let last = null;
 
+    // Physics runs on fixed slices, not on frame times, so the level plays
+    // the same on a 60Hz screen as on a 120Hz one. Feedback fires per slice
+    // that produced events; the view is pushed once per frame.
+    const stepper = createStepper((dt) => {
+      const previous = stateRef.current;
+      stateRef.current = step(previous, level, tilt.current, dt);
+      if (stateRef.current !== previous) {
+        playGameSounds(stateRef.current);
+        playGameHaptics(stateRef.current);
+      }
+    });
+    stepperRef.current = stepper;
+
     const loop = (now) => {
       // `last` is refreshed every frame even while held, so no wall-clock
       // time accumulates across a pause and the ball never jumps on resume.
       if (last != null && !frozenRef.current && !pausedRef.current) {
-        const dt = Math.min((now - last) / 1000, 1 / 30);
-        const previous = stateRef.current;
-        stateRef.current = step(previous, level, tilt.current, dt);
-        if (stateRef.current !== previous) {
-          playGameSounds(stateRef.current);
-          playGameHaptics(stateRef.current);
-        }
-        setView(stateRef.current);
+        if (stepper.advanceBy((now - last) / 1000) > 0) setView(stateRef.current);
       }
       last = now;
       rafRef.current = requestAnimationFrame(loop);
@@ -118,6 +128,7 @@ export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
     const t = setTimeout(() => {
       stateRef.current = respawn(stateRef.current, level);
       setView(stateRef.current);
+      stepperRef.current?.reset();
       runCountdown();
     }, 550);
     return () => clearTimeout(t);
