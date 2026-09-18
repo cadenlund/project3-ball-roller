@@ -1,6 +1,7 @@
 import { STATUS, createGameState, step } from '../src/game/engine';
 import { LEVELS, getLevel } from '../src/game/levels';
 import {
+  CAM_BACK,
   FACING_SPEED,
   FOV_BASE,
   createCameraRig,
@@ -113,5 +114,63 @@ describe('the lens', () => {
     trackCamera(rig, level, s, dt, { shake: 1, age: 1.7 });
     expect(Math.abs(rig.shakeX) + Math.abs(rig.shakeY)).toBeGreaterThan(0);
     expect(rig.aim.x).toBeCloseTo(aim.x, 1);
+  });
+});
+
+describe('a new life', () => {
+  const level = getLevel(8); // The Cannon: one leg of it is flown backwards
+
+  /** Drive until the view has genuinely swung round to look back down the track. */
+  const facingBackwards = () => {
+    const rig = createCameraRig();
+    let s = { ...createGameState(level), z: 60, vz: 12 };
+    // The clock has to run, as it does in play: a restart is recognised by
+    // time going backwards, and it cannot go backwards if it never went.
+    const tick = () => { s = { ...s, time: s.time + dt }; trackCamera(rig, level, s, dt, {}); };
+    for (let i = 0; i < 120; i++) tick();
+    s = { ...s, vz: -20 };
+    for (let i = 0; i < 400; i++) tick();
+    expect(rig.seat.z).toBeGreaterThan(s.z); // sat in front, looking back
+    return { rig, s };
+  };
+
+  test('faces up the track again, however the last one ended', () => {
+    // The bug: dying on a leg you were driving backwards left the view stuck
+    // the wrong way round, and a ball waiting on the start line is not moving
+    // fast enough in any direction to turn it back.
+    const { rig, s } = facingBackwards();
+    const fresh = { ...createGameState(level), falls: s.falls + 1 };
+    trackCamera(rig, level, fresh, dt, {});
+    expect(rig.target).toBe(0);
+    expect(rig.angle).toBe(0);
+    expect(rig.seat.z).toBeLessThan(fresh.z); // back behind the ball
+    expect(rig.aim.z).toBeGreaterThan(fresh.z);
+  });
+
+  test('cuts to the start rather than flying the length of the level to it', () => {
+    const { rig, s } = facingBackwards();
+    const fresh = { ...createGameState(level), falls: s.falls + 1 };
+    trackCamera(rig, level, fresh, dt, {});
+    // One frame, and it is already there - not easing back from z=60.
+    expect(Math.abs(rig.seat.z - fresh.z)).toBeLessThan(CAM_BACK + 1);
+  });
+
+  test('a restart counts too, even though the fall count goes back to zero', () => {
+    const { rig } = facingBackwards();
+    const restarted = createGameState(level); // time back to 0, falls back to 0
+    trackCamera(rig, level, restarted, dt, {});
+    expect(rig.target).toBe(0);
+    expect(Math.abs(rig.seat.z - restarted.z)).toBeLessThan(CAM_BACK + 1);
+  });
+
+  test('and an ordinary frame is still eased, not cut', () => {
+    const rig = createCameraRig();
+    let s = { ...createGameState(level), z: 40, vz: 12 };
+    for (let i = 0; i < 120; i++) trackCamera(rig, level, s, dt, {});
+    const before = rig.seat.z;
+    s = { ...s, z: 44, time: s.time + dt };
+    trackCamera(rig, level, s, dt, {});
+    expect(rig.seat.z).toBeGreaterThan(before);
+    expect(rig.seat.z).toBeLessThan(before + 4); // lagging, as it should
   });
 });

@@ -62,6 +62,8 @@ export function createCameraRig() {
     aim: { x: 0, y: 0, z: 0 },
     angle: 0,  // 0 looking up the track, PI looking back down it
     target: 0, // and where it is swinging to
+    life: 0,   // which life this is, so a respawn cuts instead of easing
+    clock: 0,  // and when, so a restart does too
     fov: FOV_BASE,
     roll: 0,
     started: false,
@@ -76,12 +78,28 @@ export function createCameraRig() {
 export function trackCamera(rig, level, state, dt, fx = {}) {
   const { rush = 0, kick = 0, shake = 0, age = 0 } = fx;
 
+  // A new life is a cut, not a move. The ball has been picked up and put back
+  // at the start, so easing toward it would fly the camera the whole length
+  // of the level to catch up - and whichever way the last life happened to
+  // end pointing, this one begins facing up the track. Without that, dying on
+  // a leg you were driving backwards (which the cannon and the locksmith both
+  // ask for) leaves the view stuck the wrong way round through the entire
+  // countdown, because a ball waiting on the line is not moving fast enough
+  // in any direction to turn it back.
+  if (rig.life !== state.falls || rig.clock > state.time) {
+    rig.started = false;
+    rig.angle = 0;
+    rig.target = 0;
+  }
+  rig.life = state.falls;
+  rig.clock = state.time;
+
   // Which way to look. Held until the ball is genuinely travelling the other
   // way, so drifting back a metre does not turn the world around.
   if (Math.abs(state.vz) > FACING_SPEED) {
     rig.target = state.vz > 0 ? 0 : Math.PI;
   }
-  rig.angle = lerp(rig.angle, rig.target ?? 0, approach(FACING_EASE, dt));
+  rig.angle = lerp(rig.angle, rig.target, approach(FACING_EASE, dt));
 
   const facing = Math.cos(rig.angle);
   const swing = Math.sin(rig.angle);
