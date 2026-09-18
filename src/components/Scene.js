@@ -1,4 +1,6 @@
-import { memo, useRef } from 'react';
+import { memo, useMemo, useRef } from 'react';
+import { Object3D } from 'three';
+import { advanceEffects, createEffects, PARTICLE_COUNT } from '../game/visualEffects';
 import { Canvas, useFrame } from '@react-three/fiber/native';
 
 import { BALL_RADIUS, PAD_RADIUS, SPINNER_HALF_WIDTH } from '../game/levels';
@@ -16,6 +18,12 @@ import { COLORS } from '../theme';
  */
 function World({ level, stateRef }) {
   const ball = useRef();
+  const ballShape = useRef();
+  const goal = useRef();
+  const particles = useRef();
+  const padRefs = useRef([]);
+  const effects = useRef(createEffects(stateRef.current));
+  const dummy = useMemo(() => new Object3D(), []);
   const spinnerRefs = useRef([]);
   const coinRefs = useRef([]);
 
@@ -23,14 +31,42 @@ function World({ level, stateRef }) {
     const s = stateRef.current;
     if (!s) return;
 
+    const fx = advanceEffects(effects.current, s, level, dt);
+
     if (ball.current) {
       ball.current.position.set(s.x, s.y, -s.z);
-      ball.current.rotation.x -= (s.vz * dt) / BALL_RADIUS;
+      ballShape.current.rotation.x -= (s.vz * dt) / BALL_RADIUS;
+      const shrink = Math.max(0.05, Math.min(1, 1 + s.y / 8));
+      const squash = fx.launch / 0.22;
+      const stretch = !s.grounded && s.y > BALL_RADIUS && !squash ? Math.min(0.4, Math.abs(s.vy) / 55) : 0;
+      ball.current.scale.set(shrink * (1 + squash * 0.3 - stretch * 0.25), shrink * (1 - squash * 0.4 + stretch), shrink * (1 + squash * 0.3 - stretch * 0.25));
     }
 
     // Chase camera: slightly behind and above, leaning into the ball's lane.
-    camera.position.set(s.x * 0.5, 5.5, -s.z + 9);
+    const shake = fx.shake * 0.55;
+    camera.position.set(s.x * 0.5 + Math.sin(fx.age * 91) * shake, 5.5 + Math.cos(fx.age * 73) * shake, -s.z + 9);
     camera.lookAt(s.x * 0.7, 0.8, -s.z - 7);
+
+    padRefs.current.forEach((pad, i) => {
+      if (!pad) return;
+      const pulse = i === fx.pad ? fx.padPulse / 0.4 : 0;
+      pad.scale.set(1 + pulse * 0.3, 1 + pulse, 1 + pulse * 0.3);
+      pad.material.emissiveIntensity = 0.85 + pulse;
+    });
+    if (goal.current) {
+      goal.current.material.opacity = 0.45 + 0.1 * Math.sin(fx.age * 2) + fx.celebration * 0.4;
+      goal.current.material.emissiveIntensity = 0.9 + fx.celebration * 2;
+      goal.current.scale.y = 1 + fx.celebration * 0.3;
+    }
+    if (particles.current) {
+      fx.particles.forEach((p, i) => {
+        dummy.position.set(p.x, p.y, p.z);
+        dummy.scale.setScalar(p.life > 0 ? p.life * 0.23 : 0);
+        dummy.updateMatrix();
+        particles.current.setMatrixAt(i, dummy.matrix);
+      });
+      particles.current.instanceMatrix.needsUpdate = true;
+    }
 
     // With the z flip, the engine's bar angle in (x, z) is exactly rotation.y.
     level.spinners.forEach((sp, i) => {
@@ -67,7 +103,7 @@ function World({ level, stateRef }) {
       ))}
 
       {level.pads.map((p, i) => (
-        <mesh key={`pad${i}`} position={[p.x, 0.09, -p.z]}>
+        <mesh key={`pad${i}`} ref={(el) => (padRefs.current[i] = el)} position={[p.x, 0.09, -p.z]}>
           <cylinderGeometry args={[PAD_RADIUS * 0.85, PAD_RADIUS * 0.85, 0.18, 24]} />
           <meshStandardMaterial color={COLORS.gold} emissive={COLORS.amber} emissiveIntensity={0.85} />
         </mesh>
@@ -90,7 +126,7 @@ function World({ level, stateRef }) {
       ))}
 
       {/* The finish line: a glowing gate across the track. */}
-      <mesh position={[goalSeg.x, 1.1, -level.goalZ]}>
+      <mesh ref={goal} position={[goalSeg.x, 1.1, -level.goalZ]}>
         <boxGeometry args={[goalSeg.width, 2.2, 0.25]} />
         <meshStandardMaterial
           color={COLORS.cyan}
@@ -101,10 +137,16 @@ function World({ level, stateRef }) {
         />
       </mesh>
 
-      <mesh ref={ball}>
+      <instancedMesh ref={particles} args={[null, null, PARTICLE_COUNT]} frustumCulled={false}>
+        <octahedronGeometry args={[1, 0]} />
+        <meshBasicMaterial color={COLORS.goldBright} />
+      </instancedMesh>
+      <group ref={ball}>
+      <mesh ref={ballShape}>
         <sphereGeometry args={[BALL_RADIUS, 24, 24]} />
         <meshStandardMaterial color={COLORS.text} emissive={COLORS.amber} emissiveIntensity={0.2} />
       </mesh>
+      </group>
     </>
   );
 }
@@ -113,7 +155,7 @@ function World({ level, stateRef }) {
 export const Scene = memo(function Scene({ level, stateRef }) {
   return (
     <Canvas style={{ flex: 1 }} camera={{ fov: 60, near: 0.1, far: 120 }}>
-      <World level={level} stateRef={stateRef} />
+      <World key={level.id} level={level} stateRef={stateRef} />
     </Canvas>
   );
 });

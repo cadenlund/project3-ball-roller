@@ -86,14 +86,15 @@ export function GameScreen({ levelId, onExit, onFinish, tiltHook }) {
     if (view.status !== STATUS.FINISHED) return;
     const coinsCollected = view.coins.filter(Boolean).length;
     const breakdown = scoreBreakdown({ time: view.time, parTime: level.parTime, coinsCollected, falls: view.falls });
-    onFinish(levelId, {
+    const finishTimer = setTimeout(() => onFinish(levelId, {
       score: breakdown.total,
       breakdown,
       time: view.time,
       coins: coinsCollected,
       falls: view.falls,
       stars: starsFor({ time: view.time, parTime: level.parTime, coinsCollected, coinTotal: level.coins.length }),
-    });
+    }), 900);
+    return () => clearTimeout(finishTimer);
   }, [view.status]);
 
   const coinsCollected = view.coins.filter(Boolean).length;

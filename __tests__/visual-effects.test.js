@@ -1,0 +1,31 @@
+import { createGameState } from '../src/game/engine';
+import { getLevel } from '../src/game/levels';
+import { createEffects, advanceEffects, PARTICLE_COUNT } from '../src/game/visualEffects';
+test('pickup emits once even across repeated render frames and particles expire', () => {
+  const level = getLevel(1), state = createGameState(level), fx = createEffects(state);
+  const collected = { ...state, coins: [true] };
+  advanceEffects(fx, collected, level, 1/60);
+  const cursor = fx.cursor;
+  advanceEffects(fx, collected, level, 1/60);
+  expect(fx.cursor).toBe(cursor);
+  expect(fx.particles.some(p => p.life > 0)).toBe(true);
+  for(let i=0;i<60;i++) advanceEffects(fx, collected, level, 1/60);
+  expect(fx.particles.every(p => p.life === 0)).toBe(true);
+  expect(fx.particles).toHaveLength(PARTICLE_COUNT);
+});
+test('launch, spinner, fall and goal react; respawn clears effects', () => {
+  const level = getLevel(3), state = createGameState(level), fx = createEffects(state);
+  const launch = { ...state, feedback: { ...state.feedback, pad: 1, lastPad: 0 } };
+  advanceEffects(fx, launch, level, 1/60);
+  expect(fx.padPulse).toBeGreaterThan(0);
+  const hit = { ...launch, feedback: { ...launch.feedback, spinner: 1 } };
+  advanceEffects(fx, hit, level, 1/60);
+  expect(fx.shake).toBeGreaterThan(0);
+  advanceEffects(fx, { ...hit, y: -1 }, level, 1/60);
+  expect(fx.shake).toBeGreaterThan(0);
+  advanceEffects(fx, { ...hit, status: 'finished' }, level, 1/60);
+  expect(fx.celebration).toBeGreaterThan(0);
+  advanceEffects(fx, { ...state, falls: 1 }, level, 1/60);
+  expect(fx.shake).toBe(0);
+  expect(fx.particles.every(p => p.life === 0)).toBe(true);
+});
